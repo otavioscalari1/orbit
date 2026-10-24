@@ -1,6 +1,7 @@
-// Este arquivo descreve as TABELAS do banco de dados.
-// Depois de alterar algo aqui, rode `npm run db:migrate` (na pasta server)
-// para o Prisma criar/atualizar as tabelas no PostgreSQL.
+// Este arquivo ESPELHA as tabelas que já existem no banco.
+// Quem cria/altera as tabelas são as migrations SQL da pasta migrations/ (rodadas à mão no DBeaver).
+// Depois de aplicar uma migration, atualize este arquivo e rode `npm run db:generate` na pasta server.
+// Nomes no código em camelCase; @map/@@map ligam aos nomes snake_case do banco.
 
 generator client {
   provider = "prisma-client"
@@ -11,59 +12,44 @@ datasource db {
   provider = "postgresql"
 }
 
-// Uma disciplina da faculdade (ex.: "Cálculo I")
-model Subject {
-  id        String   @id @default(uuid())
+// migrations/001_create_users_and_weekly_schedule.sql
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name         String
+  email        String
+  dayStartHour Int?     @map("day_start_hour") @db.SmallInt
+  dayEndHour   Int?     @map("day_end_hour") @db.SmallInt
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  classes Class[]
+
+  @@map("users")
+}
+
+// migrations/001_create_users_and_weekly_schedule.sql
+model Class {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
   name      String
-  color     String   @default("#6366f1")
-  createdAt DateTime @default(now())
+  startTime DateTime @map("start_time") @db.Time
+  endTime   DateTime @map("end_time") @db.Time
+  color     String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  events    Event[]
-  questions Question[]
-  files     File[]
+  user User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  days ClassDay[]
+
+  @@index([userId], map: "classes_user_id_idx")
+  @@map("classes")
 }
 
-// Um compromisso no calendário (prova, trabalho, aula...)
-model Event {
-  id          String    @id @default(uuid())
-  title       String
-  description String?
-  type        EventType @default(OTHER)
-  startsAt    DateTime
-  endsAt      DateTime?
-  createdAt   DateTime  @default(now())
+// migrations/001_create_users_and_weekly_schedule.sql
+model ClassDay {
+  classId String @map("class_id") @db.Uuid
+  weekday Int    @db.SmallInt
 
-  subjectId String?
-  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-}
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
 
-enum EventType {
-  EXAM
-  ASSIGNMENT
-  CLASS
-  OTHER
-}
-
-// Uma questão de estudo
-model Question {
-  id        String   @id @default(uuid())
-  statement String
-  answer    String?
-  createdAt DateTime @default(now())
-
-  subjectId String?
-  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
-}
-
-// Um arquivo enviado (o arquivo fica na pasta uploads/, aqui guardamos só as informações)
-model File {
-  id           String   @id @default(uuid())
-  originalName String
-  storedName   String
-  mimeType     String
-  size         Int
-  createdAt    DateTime @default(now())
-
-  subjectId String?
-  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  @@id([classId, weekday])
+  @@map("class_days")
 }

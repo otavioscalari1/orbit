@@ -1,10 +1,12 @@
 import 'dotenv/config'
 import cors from 'cors'
-import express from 'express'
+import express, { type ErrorRequestHandler } from 'express'
 import { prisma } from './lib/prisma.ts'
+import { classesRouter } from './routes/classes.ts'
+import { timeWindowRouter } from './routes/timeWindow.ts'
 
 const app = express()
-const PORT = Number(process.env.PORT ?? 3333)
+const PORT = Number(process.env.SERVER_PORT ?? 3333)
 
 app.use(cors())
 app.use(express.json())
@@ -19,22 +21,15 @@ app.get('/api/health', async (_req, res) => {
   }
 })
 
-// Lista as disciplinas
-app.get('/api/subjects', async (_req, res) => {
-  const subjects = await prisma.subject.findMany({ orderBy: { name: 'asc' } })
-  res.json(subjects)
-})
+app.use('/api/time-window', timeWindowRouter)
+app.use('/api/classes', classesRouter)
 
-// Cria uma disciplina
-app.post('/api/subjects', async (req, res) => {
-  const { name, color } = req.body as { name?: string; color?: string }
-  if (!name) {
-    res.status(400).json({ error: 'O nome é obrigatório' })
-    return
-  }
-  const subject = await prisma.subject.create({ data: { name, color } })
-  res.status(201).json(subject)
-})
+// Qualquer erro não tratado nas rotas cai aqui
+const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {
+  console.error(error)
+  res.status(500).json({ error: 'Erro interno no servidor.' })
+}
+app.use(errorHandler)
 
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`)

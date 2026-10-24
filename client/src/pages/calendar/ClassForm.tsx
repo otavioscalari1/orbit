@@ -4,8 +4,8 @@ import { CLASS_COLORS, formatHour, toMinutes, WEEK_DAYS, type ClassItem, type Ti
 type ClassFormProps = {
   initialValue?: ClassItem
   timeWindow: TimeWindow
-  onSave: (value: ClassItem) => void
-  onDelete?: () => void
+  onSave: (value: Omit<ClassItem, 'id'>) => Promise<void>
+  onDelete?: () => Promise<void>
   onCancel: () => void
 }
 
@@ -17,9 +17,22 @@ export function ClassForm({ initialValue, timeWindow, onSave, onDelete, onCancel
   const [end, setEnd] = useState(initialValue?.end ?? '21:00')
   const [color, setColor] = useState(initialValue?.color ?? CLASS_COLORS[0])
   const [error, setError] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
   function toggleDay(day: number) {
     setDays((current) => (current.includes(day) ? current.filter((d) => d !== day) : [...current, day]))
+  }
+
+  // Executa uma ação no servidor mostrando "salvando" e exibindo o erro, se houver
+  async function run(action: () => Promise<void>) {
+    setSaving(true)
+    setError(null)
+    try {
+      await action()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Algo deu errado.')
+      setSaving(false)
+    }
   }
 
   function handleSubmit(event: FormEvent) {
@@ -37,14 +50,7 @@ export function ClassForm({ initialValue, timeWindow, onSave, onDelete, onCancel
       )
     }
 
-    onSave({
-      id: initialValue?.id ?? crypto.randomUUID(),
-      name: name.trim(),
-      days,
-      start,
-      end,
-      color,
-    })
+    run(() => onSave({ name: name.trim(), days, start, end, color }))
   }
 
   return (
@@ -148,8 +154,9 @@ export function ClassForm({ initialValue, timeWindow, onSave, onDelete, onCancel
         {onDelete && (
           <button
             type="button"
-            onClick={onDelete}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-rose-400 transition hover:bg-rose-500/10"
+            disabled={saving}
+            onClick={() => run(onDelete)}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-rose-400 transition hover:bg-rose-500/10 disabled:opacity-40"
           >
             Excluir
           </button>
@@ -164,9 +171,10 @@ export function ClassForm({ initialValue, timeWindow, onSave, onDelete, onCancel
           </button>
           <button
             type="submit"
-            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-brand-dark"
+            disabled={saving}
+            className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-brand-dark disabled:opacity-40"
           >
-            Salvar
+            {saving ? 'Salvando...' : 'Salvar'}
           </button>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { formatHour, type TimeWindow } from '../../lib/schedule'
 
 type TimeWindowFormProps = {
   initialValue: TimeWindow | null
-  onSave: (value: TimeWindow) => void
+  onSave: (value: TimeWindow) => Promise<void>
   onCancel?: () => void
 }
 
@@ -14,11 +14,22 @@ export function TimeWindowForm({ initialValue, onSave, onCancel }: TimeWindowFor
   const [startHour, setStartHour] = useState(initialValue?.startHour ?? 8)
   const [endHour, setEndHour] = useState(initialValue?.endHour ?? 23)
 
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
   const isValid = endHour > startHour
 
-  function handleSubmit(event: FormEvent) {
+  async function handleSubmit(event: FormEvent) {
     event.preventDefault()
-    if (isValid) onSave({ startHour, endHour })
+    if (!isValid) return
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave({ startHour, endHour })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Algo deu errado.')
+      setSaving(false)
+    }
   }
 
   return (
@@ -61,6 +72,7 @@ export function TimeWindowForm({ initialValue, onSave, onCancel }: TimeWindowFor
       </div>
 
       {!isValid && <p className="mt-3 text-sm text-rose-400">O fim precisa ser depois do começo.</p>}
+      {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
 
       <div className="mt-6 flex justify-end gap-2">
         {onCancel && (
@@ -74,10 +86,10 @@ export function TimeWindowForm({ initialValue, onSave, onCancel }: TimeWindowFor
         )}
         <button
           type="submit"
-          disabled={!isValid}
+          disabled={!isValid || saving}
           className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-brand-dark disabled:opacity-40"
         >
-          Salvar
+          {saving ? 'Salvando...' : 'Salvar'}
         </button>
       </div>
     </form>

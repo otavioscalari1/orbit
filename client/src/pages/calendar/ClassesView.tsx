@@ -1,7 +1,7 @@
 import { Clock, Plus } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Modal } from '../../components/Modal'
-import { useLocalStorage } from '../../hooks/useLocalStorage'
+import { api } from '../../lib/api'
 import { formatHour, toMinutes, WEEK_DAYS, type ClassItem, type TimeWindow } from '../../lib/schedule'
 import { ClassForm } from './ClassForm'
 import { TimeWindowForm } from './TimeWindowForm'
@@ -30,19 +30,56 @@ function layoutDay(items: ClassItem[]): PositionedClass[] {
 
 type FormState = { mode: 'create' } | { mode: 'edit'; item: ClassItem } | null
 
+type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready' }
+
 export function ClassesView() {
-  const [timeWindow, setTimeWindow] = useLocalStorage<TimeWindow | null>('orbit:time-window', null)
-  const [classes, setClasses] = useLocalStorage<ClassItem[]>('orbit:classes', [])
+  const [load, setLoad] = useState<LoadState>({ status: 'loading' })
+  const [timeWindow, setTimeWindow] = useState<TimeWindow | null>(null)
+  const [classes, setClasses] = useState<ClassItem[]>([])
   const [editingWindow, setEditingWindow] = useState(false)
   const [form, setForm] = useState<FormState>(null)
+
+  // Busca a janela de horário e as aulas no banco (via backend)
+  function loadData() {
+    setLoad({ status: 'loading' })
+    Promise.all([api.getTimeWindow(), api.getClasses()])
+      .then(([loadedWindow, loadedClasses]) => {
+        setTimeWindow(loadedWindow)
+        setClasses(loadedClasses)
+        setLoad({ status: 'ready' })
+      })
+      .catch((error: Error) => setLoad({ status: 'error', message: error.message }))
+  }
+
+  useEffect(loadData, [])
+
+  if (load.status === 'loading') {
+    return <p className="py-12 text-center text-white/50">Carregando sua rotina...</p>
+  }
+
+  if (load.status === 'error') {
+    return (
+      <div className="py-12 text-center">
+        <p className="text-rose-400">{load.message}</p>
+        <p className="mt-1 text-sm text-white/50">Verifique se o backend e o banco estão rodando.</p>
+        <button
+          type="button"
+          onClick={loadData}
+          className="mt-4 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium transition hover:border-brand hover:text-brand"
+        >
+          Tentar de novo
+        </button>
+      </div>
+    )
+  }
 
   // Primeiro passo: o usuário precisa definir a janela de horário
   if (!timeWindow || editingWindow) {
     return (
       <TimeWindowForm
         initialValue={timeWindow}
-        onSave={(value) => {
-          setTimeWindow(value)
+        onSave={async (value) => {
+          setTimeWindow(await api.saveTimeWindow(value))
           setEditingWindow(false)
         }}
         onCancel={timeWindow ? () => setEditingWindow(false) : undefined}
@@ -57,16 +94,19 @@ export function ClassesView() {
   const gridHeight = hours.length * HOUR_HEIGHT
   const today = new Date().getDay()
 
-  function saveClass(item: ClassItem) {
-    setClasses((current) =>
-      current.some((existing) => existing.id === item.id)
-        ? current.map((existing) => (existing.id === item.id ? item : existing))
-        : [...current, item],
-    )
+  async function saveClass(value: Omit<ClassItem, 'id'>) {
+    if (form?.mode === 'edit') {
+      const updated = await api.updateClass(form.item.id, value)
+      setClasses((current) => current.map((existing) => (existing.id === updated.id ? updated : existing)))
+    } else {
+      const created = await api.createClass(value)
+      setClasses((current) => [...current, created])
+    }
     setForm(null)
   }
 
-  function deleteClass(id: string) {
+  async function deleteClass(id: string) {
+    await api.deleteClass(id)
     setClasses((current) => current.filter((existing) => existing.id !== id))
     setForm(null)
   }

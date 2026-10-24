@@ -39,9 +39,18 @@ orbit/
 
 - `npm run dev:client`: só o frontend em http://localhost:5173
 - `npm run dev:server`: só o backend em http://localhost:3333
-- `npm run dev`: os dois juntos (precisa do `concurrently` instalado na raiz)
+- `npm run dev`: os dois juntos (usa o `concurrently`)
 
 O Vite repassa toda requisição `/api/*` do frontend para o backend (proxy em `client/vite.config.ts`).
+
+## API e dados
+
+- **Todos os dados do usuário ficam no banco**, nunca em localStorage ou cookies. O frontend lê e grava pela API (`client/src/lib/api.ts`).
+- **Ainda não existe login.** O backend usa um usuário padrão (`usuario@orbit.local`), criado automaticamente na primeira requisição (`server/src/lib/currentUser.ts`). Toda rota filtra os dados pelo usuário atual.
+- **Rotas ficam em `server/src/routes/`**, uma por recurso:
+  - `GET` e `PUT /api/time-window`: janela de horário do dia.
+  - `GET`, `POST`, `PUT /:id` e `DELETE /:id` em `/api/classes`: aulas da rotina semanal.
+- **Validação:** o backend sempre valida a entrada, mesmo que o frontend já valide, e responde `400` com `{ error: "mensagem em português" }`.
 
 ## Migrations do banco
 
