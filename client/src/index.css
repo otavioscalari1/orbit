@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Cores e fontes do projeto. Viram classes do Tailwind:
+   bg-ink, text-brand, border-brand, font-display etc. */
+@theme {
+  --color-brand: #5ad1ec;       /* azul claro puxado para o verde-água */
+  --color-brand-dark: #2fa9c6;
+  --color-ink: #0b0d10;         /* fundo quase preto */
+  --color-ink-light: #14181d;   /* cartões e superfícies */
+  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply bg-ink text-white font-display antialiased;
+}

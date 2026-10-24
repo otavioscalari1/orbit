@@ -1,0 +1,17 @@
+node_modules
+dist
+*.log
+
+# Variáveis de ambiente (senhas!) nunca vão para o GitHub
+.env
+
+# Arquivos enviados pelos usuários
+server/uploads/*
+!server/uploads/.gitkeep
+
+# Código gerado pelo Prisma
+server/src/generated
+
+.DS_Store
+.vscode/*
+!.vscode/extensions.json

@@ -1,0 +1,69 @@
+// Este arquivo descreve as TABELAS do banco de dados.
+// Depois de alterar algo aqui, rode `npm run db:migrate` (na pasta server)
+// para o Prisma criar/atualizar as tabelas no PostgreSQL.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Uma disciplina da faculdade (ex.: "Cálculo I")
+model Subject {
+  id        String   @id @default(uuid())
+  name      String
+  color     String   @default("#6366f1")
+  createdAt DateTime @default(now())
+
+  events    Event[]
+  questions Question[]
+  files     File[]
+}
+
+// Um compromisso no calendário (prova, trabalho, aula...)
+model Event {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  type        EventType @default(OTHER)
+  startsAt    DateTime
+  endsAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+}
+
+enum EventType {
+  EXAM
+  ASSIGNMENT
+  CLASS
+  OTHER
+}
+
+// Uma questão de estudo
+model Question {
+  id        String   @id @default(uuid())
+  statement String
+  answer    String?
+  createdAt DateTime @default(now())
+
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+}
+
+// Um arquivo enviado (o arquivo fica na pasta uploads/, aqui guardamos só as informações)
+model File {
+  id           String   @id @default(uuid())
+  originalName String
+  storedName   String
+  mimeType     String
+  size         Int
+  createdAt    DateTime @default(now())
+
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+}
