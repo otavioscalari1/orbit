@@ -1,23 +1,18 @@
-import { Logo } from './components/Logo'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router'
+import { AppLayout } from './layouts/AppLayout'
+import { CalendarPage } from './pages/CalendarPage'
 
 function App() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-8 px-6 text-center">
-      <Logo className="text-8xl sm:text-9xl" />
-
-      <p className="max-w-md text-lg text-white/70">
-        Sua faculdade organizada em um só lugar: calendário, questões e arquivos.
-      </p>
-
-      <div className="flex gap-3">
-        <button className="rounded-xl bg-brand px-6 py-3 font-semibold text-ink transition hover:bg-brand-dark">
-          Começar
-        </button>
-        <button className="rounded-xl border border-white/15 px-6 py-3 font-semibold text-white transition hover:border-brand hover:text-brand">
-          Saiba mais
-        </button>
-      </div>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<AppLayout />}>
+          {/* Por enquanto a tela inicial é o calendário */}
+          <Route index element={<Navigate to="/calendario" replace />} />
+          <Route path="calendario" element={<CalendarPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   )
 }
 
