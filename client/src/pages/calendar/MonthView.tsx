@@ -1,29 +1,31 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { getBrazilianHolidays, toDateKey, type Holiday } from '../lib/holidays'
+import { getBrazilianHolidays, toDateKey, type Holiday } from '../../lib/holidays'
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
-// Monta as 6 semanas (42 dias) exibidas no mês, incluindo dias do mês anterior/seguinte
-function getCalendarDays(year: number, month: number): Date[] {
+// Células da grade do mês: os dias do mês, com espaços vazios (null) antes do dia 1
+// para ele cair no dia da semana certo, e depois do último dia para completar a semana.
+function getMonthCells(year: number, month: number): (Date | null)[] {
   const firstWeekday = new Date(year, month, 1).getDay()
-  return Array.from({ length: 42 }, (_, i) => new Date(year, month, 1 - firstWeekday + i))
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const cells: (Date | null)[] = Array(firstWeekday).fill(null)
+  for (let day = 1; day <= daysInMonth; day++) cells.push(new Date(year, month, day))
+  while (cells.length % 7 !== 0) cells.push(null)
+  return cells
 }
 
-export function CalendarPage() {
+export function MonthView() {
   const today = new Date()
   const [current, setCurrent] = useState({ year: today.getFullYear(), month: today.getMonth() })
 
-  const days = useMemo(() => getCalendarDays(current.year, current.month), [current])
+  const cells = useMemo(() => getMonthCells(current.year, current.month), [current])
 
-  // Feriados do ano exibido e dos vizinhos (a grade pode mostrar dias de dezembro/janeiro)
   const holidaysByDay = useMemo(() => {
     const map = new Map<string, Holiday[]>()
-    for (const year of [current.year - 1, current.year, current.year + 1]) {
-      for (const holiday of getBrazilianHolidays(year)) {
-        const key = toDateKey(holiday.date)
-        map.set(key, [...(map.get(key) ?? []), holiday])
-      }
+    for (const holiday of getBrazilianHolidays(current.year)) {
+      const key = toDateKey(holiday.date)
+      map.set(key, [...(map.get(key) ?? []), holiday])
     }
     return map
   }, [current.year])
@@ -84,23 +86,20 @@ export function CalendarPage() {
         ))}
       </div>
 
-      <div className="grid min-h-[36rem] flex-1 grid-cols-7 grid-rows-6 gap-px overflow-hidden rounded-b-xl bg-white/10">
-        {days.map((day) => {
+      <div
+        className="grid min-h-[32rem] flex-1 grid-cols-7 gap-px overflow-hidden rounded-b-xl bg-white/10"
+        style={{ gridTemplateRows: `repeat(${cells.length / 7}, minmax(0, 1fr))` }}
+      >
+        {cells.map((day, index) => {
+          if (!day) return <div key={`empty-${index}`} className="bg-ink/60" />
+
           const key = toDateKey(day)
-          const inMonth = day.getMonth() === current.month
           const isToday = key === todayKey
           const holidays = holidaysByDay.get(key) ?? []
           const isHoliday = holidays.some((holiday) => !holiday.optional)
 
           return (
-            <div
-              key={key}
-              className={
-                'flex min-h-0 flex-col gap-1 p-2 ' +
-                (isHoliday ? 'bg-brand/10 ' : 'bg-ink ') +
-                (inMonth ? '' : 'opacity-40')
-              }
-            >
+            <div key={key} className={'flex min-h-0 flex-col gap-1 p-2 ' + (isHoliday ? 'bg-brand/10' : 'bg-ink')}>
               <span
                 className={
                   'flex h-7 w-7 items-center justify-center rounded-full text-sm ' +

@@ -52,8 +52,10 @@ As migrations são **arquivos SQL escritos à mão**. Elas são a fonte da verda
 - **Toda migration começa com `BEGIN;` e termina com `COMMIT;`**. Assim, se algo falhar no meio, nada é aplicado pela metade.
 - **Nunca editar uma migration que já foi aplicada.** Para corrigir ou mudar algo, crie uma nova migration com o próximo número.
 - Uma migration deve fazer **uma mudança coerente**, descrita no nome do arquivo.
-- **Não usar `prisma migrate`**: ele gera migrations no formato próprio do Prisma, com pastas e timestamps, e isso conflita com estas regras. O script `db:migrate` em `server/package.json` ainda aponta para `prisma migrate dev` e precisa ser substituído.
-- **Depois de aplicar uma migration**, mantenha o `server/prisma/schema.prisma` igual ao banco e regenere o client com `npx prisma generate` (na pasta `server`). O `schema.prisma` serve só para gerar os tipos do Prisma Client e não cria tabelas.
+- **Nada é executado automaticamente no banco.** O autor roda cada migration **manualmente no DBeaver**. Claude só escreve o arquivo `.sql`: nunca executa migrations, `prisma migrate`, `prisma db push` ou qualquer comando que altere o banco. Não existe script nem ferramenta para aplicar migrations.
+- **Não usar `prisma migrate` nem `prisma db push`**: além da regra acima, o `prisma migrate` gera migrations no formato próprio do Prisma, com pastas e timestamps, e isso conflita com estas regras.
+- **Depois que o autor aplicar uma migration**, mantenha o `server/prisma/schema.prisma` igual ao banco e regenere o client com `npx prisma generate` (na pasta `server`). O `schema.prisma` serve só para gerar os tipos do Prisma Client e não cria tabelas.
+- **Dados não vão em migrations.** Elas só mudam a estrutura do banco. Dados iniciais, como o usuário padrão, são criados pelo backend.
 
 Modelo de migration:
 
