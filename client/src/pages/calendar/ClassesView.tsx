@@ -6,8 +6,8 @@ import { formatHour, toMinutes, WEEK_DAYS, type ClassItem, type TimeWindow } fro
 import { ClassForm } from './ClassForm'
 import { TimeWindowForm } from './TimeWindowForm'
 
-// Altura de 1 hora na grade, em pixels
-const HOUR_HEIGHT = 56
+// Tamanho de cada bloco de horário da grade, em horas
+const BLOCK_HOURS = 2
 
 type PositionedClass = {
   item: ClassItem
@@ -87,11 +87,15 @@ export function ClassesView() {
     )
   }
 
-  const hours = Array.from(
-    { length: timeWindow.endHour - timeWindow.startHour },
-    (_, i) => timeWindow.startHour + i,
-  )
-  const gridHeight = hours.length * HOUR_HEIGHT
+  // A grade inteira cabe na tela: cada posição é uma porcentagem da janela de horário
+  const windowStart = timeWindow.startHour * 60
+  const windowMinutes = (timeWindow.endHour - timeWindow.startHour) * 60
+  const toPercent = (minutes: number) => (minutes / windowMinutes) * 100
+
+  // Linhas de 2 em 2 horas (o último bloco pode ser menor, ex.: 22:00–23:00)
+  const blockStarts: number[] = []
+  for (let hour = timeWindow.startHour; hour < timeWindow.endHour; hour += BLOCK_HOURS) blockStarts.push(hour)
+
   const today = new Date().getDay()
 
   async function saveClass(value: Omit<ClassItem, 'id'>) {
@@ -112,12 +116,17 @@ export function ClassesView() {
   }
 
   return (
-    <div>
+    <div className="flex h-full flex-col">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">Rotina semanal</h1>
           <p className="mt-1 text-sm text-white/60">
             Seu dia vai das {formatHour(timeWindow.startHour)} às {formatHour(timeWindow.endHour)}.
+            {classes.length === 0 && (
+              <>
+                {' '}Nenhuma aula cadastrada ainda: clique em <span className="text-brand">Nova aula</span> para começar.
+              </>
+            )}
           </p>
         </div>
 
@@ -141,84 +150,84 @@ export function ClassesView() {
         </div>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-white/10">
-        <div className="min-w-[48rem]">
-          {/* Cabeçalho com os dias da semana */}
-          <div className="grid grid-cols-[4rem_repeat(7,minmax(0,1fr))] border-b border-white/10 bg-ink-light">
-            <div />
-            {WEEK_DAYS.map(({ day, label }) => (
-              <div
-                key={day}
-                className={
-                  'py-3 text-center text-sm font-semibold ' + (day === today ? 'text-brand' : 'text-white/70')
-                }
-              >
-                {label}
-              </div>
-            ))}
-          </div>
-
-          {/* Grade de horários */}
-          <div className="grid grid-cols-[4rem_repeat(7,minmax(0,1fr))]">
-            <div className="relative" style={{ height: gridHeight }}>
-              {hours.map((hour, index) => (
-                <span
-                  key={hour}
-                  className="absolute right-2 -translate-y-1/2 text-xs text-white/40"
-                  style={{ top: index * HOUR_HEIGHT }}
-                >
-                  {index === 0 ? '' : formatHour(hour)}
-                </span>
-              ))}
+      {/* A grade ocupa todo o espaço que sobra na tela, sem rolagem */}
+      <div className="flex min-h-64 flex-1 flex-col overflow-hidden rounded-xl border border-white/10">
+        {/* Cabeçalho com os dias da semana */}
+        <div className="grid grid-cols-[3.5rem_repeat(7,minmax(0,1fr))] border-b border-white/10 bg-ink-light">
+          <div />
+          {WEEK_DAYS.map(({ day, short, label }) => (
+            <div
+              key={day}
+              className={
+                'truncate py-2.5 text-center text-sm font-semibold ' + (day === today ? 'text-brand' : 'text-white/70')
+              }
+            >
+              <span className="lg:hidden">{short}</span>
+              <span className="hidden lg:inline">{label}</span>
             </div>
+          ))}
+        </div>
 
-            {WEEK_DAYS.map(({ day }) => (
-              <div
-                key={day}
-                className={'relative overflow-hidden border-l border-white/10 ' + (day === today ? 'bg-brand/5' : '')}
-                style={{
-                  height: gridHeight,
-                  backgroundImage: 'linear-gradient(to bottom, rgb(255 255 255 / 0.07) 1px, transparent 1px)',
-                  backgroundSize: `100% ${HOUR_HEIGHT}px`,
-                }}
+        {/* Grade de horários */}
+        <div className="relative grid min-h-0 flex-1 grid-cols-[3.5rem_repeat(7,minmax(0,1fr))]">
+          {/* Linhas horizontais de cada bloco de 2h, atravessando a grade toda */}
+          {blockStarts.map((hour) => (
+            <div
+              key={hour}
+              className="pointer-events-none absolute inset-x-0 border-t border-white/10 first:border-t-0"
+              style={{ top: `${toPercent(hour * 60 - windowStart)}%` }}
+            />
+          ))}
+
+          {/* Coluna com os horários */}
+          <div className="relative">
+            {blockStarts.map((hour) => (
+              <span
+                key={hour}
+                className="absolute right-2 mt-1 text-xs text-white/40"
+                style={{ top: `${toPercent(hour * 60 - windowStart)}%` }}
               >
-                {layoutDay(classes.filter((item) => item.days.includes(day))).map(({ item, lane, lanes }) => {
-                  const top = ((toMinutes(item.start) - timeWindow.startHour * 60) / 60) * HOUR_HEIGHT
-                  const height = ((toMinutes(item.end) - toMinutes(item.start)) / 60) * HOUR_HEIGHT
-
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setForm({ mode: 'edit', item })}
-                      className="absolute overflow-hidden rounded-md border-l-4 px-2 py-1 text-left transition hover:brightness-125"
-                      style={{
-                        top: top + 1,
-                        height: height - 2,
-                        left: `calc(${(lane / lanes) * 100}% + 2px)`,
-                        width: `calc(${100 / lanes}% - 4px)`,
-                        backgroundColor: `${item.color}33`,
-                        borderColor: item.color,
-                      }}
-                    >
-                      <span className="block truncate text-sm font-medium">{item.name}</span>
-                      <span className="block truncate text-xs text-white/70">
-                        {item.start} – {item.end}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
+                {formatHour(hour)}
+              </span>
             ))}
           </div>
+
+          {WEEK_DAYS.map(({ day }) => (
+            <div
+              key={day}
+              className={'relative overflow-hidden border-l border-white/10 ' + (day === today ? 'bg-brand/5' : '')}
+            >
+              {layoutDay(classes.filter((item) => item.days.includes(day))).map(({ item, lane, lanes }) => {
+                const start = toMinutes(item.start)
+                const end = toMinutes(item.end)
+
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    title={`${item.name} (${item.start} – ${item.end})`}
+                    onClick={() => setForm({ mode: 'edit', item })}
+                    className="absolute overflow-hidden rounded-md border-l-4 px-1.5 py-0.5 text-left leading-tight transition hover:brightness-125"
+                    style={{
+                      top: `calc(${toPercent(start - windowStart)}% + 1px)`,
+                      height: `calc(${toPercent(end - start)}% - 2px)`,
+                      left: `calc(${(lane / lanes) * 100}% + 2px)`,
+                      width: `calc(${100 / lanes}% - 4px)`,
+                      backgroundColor: `${item.color}33`,
+                      borderColor: item.color,
+                    }}
+                  >
+                    <span className="block truncate text-sm font-medium">{item.name}</span>
+                    <span className="block truncate text-xs text-white/70">
+                      {item.start} – {item.end}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
         </div>
       </div>
-
-      {classes.length === 0 && (
-        <p className="mt-4 text-center text-sm text-white/50">
-          Nenhuma aula cadastrada ainda. Clique em <span className="text-brand">Nova aula</span> para começar.
-        </p>
-      )}
 
       {form && (
         <Modal title={form.mode === 'create' ? 'Nova aula' : 'Editar aula'} onClose={() => setForm(null)}>
