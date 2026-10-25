@@ -3,6 +3,7 @@ import cors from 'cors'
 import express, { type ErrorRequestHandler } from 'express'
 import { prisma } from './lib/prisma.ts'
 import { classesRouter } from './routes/classes.ts'
+import { eventsRouter } from './routes/events.ts'
 import { timeWindowRouter } from './routes/timeWindow.ts'
 
 const app = express()
@@ -23,6 +24,7 @@ app.get('/api/health', async (_req, res) => {
 
 app.use('/api/time-window', timeWindowRouter)
 app.use('/api/classes', classesRouter)
+app.use('/api/events', eventsRouter)
 
 // Qualquer erro não tratado nas rotas cai aqui
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {

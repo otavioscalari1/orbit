@@ -24,7 +24,7 @@ export function Modal({ title, onClose, children }: ModalProps) {
         if (event.target === event.currentTarget) onClose()
       }}
     >
-      <div role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-md rounded-2xl border border-white/10 bg-ink-light p-6 shadow-2xl">
+      <div role="dialog" aria-modal="true" aria-label={title} className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-ink-light p-6 shadow-2xl">
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-xl font-semibold">{title}</h2>
           <button

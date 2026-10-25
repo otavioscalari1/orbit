@@ -1,3 +1,4 @@
+import type { CalendarEvent, CalendarEventInput } from './events'
 import type { ClassItem, TimeWindow } from './schedule'
 
 // Faz uma requisição para o backend. Se der erro, lança a mensagem que o servidor mandou.
@@ -28,4 +29,13 @@ export const api = {
   updateClass: (id: string, value: ClassInput) =>
     request<ClassItem>(`/classes/${id}`, { method: 'PUT', body: JSON.stringify(value) }),
   deleteClass: (id: string) => request<void>(`/classes/${id}`, { method: 'DELETE' }),
+
+  // from/to no formato "AAAA-MM-DD"
+  getEvents: (from: string, to: string) =>
+    request<CalendarEvent[]>(`/events?${new URLSearchParams({ from, to })}`),
+  createEvent: (value: CalendarEventInput) =>
+    request<CalendarEvent>('/events', { method: 'POST', body: JSON.stringify(value) }),
+  updateEvent: (id: string, value: CalendarEventInput) =>
+    request<CalendarEvent>(`/events/${id}`, { method: 'PUT', body: JSON.stringify(value) }),
+  deleteEvent: (id: string) => request<void>(`/events/${id}`, { method: 'DELETE' }),
 }

@@ -50,6 +50,7 @@ O Vite repassa toda requisição `/api/*` do frontend para o backend (proxy em `
 - **Rotas ficam em `server/src/routes/`**, uma por recurso:
   - `GET` e `PUT /api/time-window`: janela de horário do dia.
   - `GET`, `POST`, `PUT /:id` e `DELETE /:id` em `/api/classes`: aulas da rotina semanal.
+  - `GET /api/events?from=AAAA-MM-DD&to=AAAA-MM-DD`, `POST`, `PUT /:id` e `DELETE /:id` em `/api/events`: eventos do calendário.
 - **Validação:** o backend sempre valida a entrada, mesmo que o frontend já valide, e responde `400` com `{ error: "mensagem em português" }`.
 
 ## Migrations do banco

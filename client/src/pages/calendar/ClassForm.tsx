@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { ColorPicker } from '../../components/ColorPicker'
 import { CLASS_COLORS, formatHour, toMinutes, WEEK_DAYS, type ClassItem, type TimeWindow } from '../../lib/schedule'
 
 type ClassFormProps = {
@@ -115,36 +116,8 @@ export function ClassForm({ initialValue, timeWindow, onSave, onDelete, onCancel
 
       <fieldset>
         <legend className="text-sm text-white/70">Cor do card</legend>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          {CLASS_COLORS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              aria-label={`Cor ${option}`}
-              aria-pressed={color === option}
-              onClick={() => setColor(option)}
-              className={
-                'h-8 w-8 rounded-full transition ' +
-                (color === option ? 'ring-2 ring-white ring-offset-2 ring-offset-ink-light' : 'hover:scale-110')
-              }
-              style={{ backgroundColor: option }}
-            />
-          ))}
-          <label
-            title="Escolher outra cor"
-            className={
-              'relative h-8 w-8 cursor-pointer overflow-hidden rounded-full border border-dashed border-white/40 ' +
-              (CLASS_COLORS.includes(color) ? '' : 'ring-2 ring-white ring-offset-2 ring-offset-ink-light')
-            }
-            style={CLASS_COLORS.includes(color) ? undefined : { backgroundColor: color }}
-          >
-            <input
-              type="color"
-              value={color}
-              onChange={(event) => setColor(event.target.value)}
-              className="absolute inset-0 cursor-pointer opacity-0"
-            />
-          </label>
+        <div className="mt-2">
+          <ColorPicker value={color} onChange={setColor} />
         </div>
       </fieldset>
 

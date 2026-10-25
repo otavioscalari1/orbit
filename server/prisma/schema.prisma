@@ -22,6 +22,7 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
 
   classes Class[]
+  events  Event[]
 
   @@map("users")
 }
@@ -52,4 +53,22 @@ model ClassDay {
 
   @@id([classId, weekday])
   @@map("class_days")
+}
+
+// migrations/002_create_events.sql
+model Event {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  title       String
+  description String?
+  eventDate   DateTime  @map("event_date") @db.Date
+  startTime   DateTime? @map("start_time") @db.Time
+  endTime     DateTime? @map("end_time") @db.Time
+  color       String
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, eventDate], map: "events_user_id_event_date_idx")
+  @@map("events")
 }
