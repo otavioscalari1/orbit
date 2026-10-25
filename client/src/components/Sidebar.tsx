@@ -1,10 +1,12 @@
-import { CalendarDays, type LucideIcon } from 'lucide-react'
+import { CalendarDays, House, type LucideIcon } from 'lucide-react'
 import { NavLink } from 'react-router'
 
 type NavItem = {
   label: string
   to: string
   icon: LucideIcon
+  // true = só fica ativo no endereço exato (necessário para "/", que é o começo de todos os endereços)
+  end?: boolean
 }
 
 type NavGroup = {
@@ -14,6 +16,10 @@ type NavGroup = {
 
 // Para criar novas abas, basta adicionar itens/grupos aqui
 const groups: NavGroup[] = [
+  {
+    title: 'Início',
+    items: [{ label: 'Home', to: '/', icon: House, end: true }],
+  },
   {
     title: 'Rotina',
     items: [{ label: 'Calendário', to: '/calendario', icon: CalendarDays }],
@@ -39,10 +45,11 @@ export function Sidebar({ open }: SidebarProps) {
               {group.title}
             </h2>
             <ul className="space-y-1">
-              {group.items.map(({ label, to, icon: Icon }) => (
+              {group.items.map(({ label, to, icon: Icon, end }) => (
                 <li key={to}>
                   <NavLink
                     to={to}
+                    end={end}
                     className={({ isActive }) =>
                       'flex items-center gap-3 rounded-lg px-3 py-2 font-medium text-brand transition hover:bg-brand/10 ' +
                       (isActive ? 'bg-brand/15' : '')

@@ -8,6 +8,7 @@
   --color-ink: #0b0d10;         /* fundo quase preto */
   --color-ink-light: #14181d;   /* cartões e superfícies */
   --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace; /* rótulos técnicos e arte ASCII */
 }
 
 html {
