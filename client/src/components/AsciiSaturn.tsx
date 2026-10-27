@@ -64,11 +64,12 @@ function drawFrame(
   const centerX = width / 2
   const centerY = height / 2
   // Tamanho do planeta para que planeta + anel caibam na área
+  // 1.45 = maior altura que planeta + anel chegam com o movimento abaixo (assim o anel nunca é cortado)
   const scale = Math.min(width / (2 * (RING_OUTER + 0.15)), height / (2 * 1.45))
 
   // Movimento lento do anel: ele "abre/fecha" (tilt) e inclina para os lados (roll)
-  const tilt = 0.38 + 0.18 * Math.sin(time * 0.11)
-  const roll = -0.4 + 0.3 * Math.sin(time * 0.07 + 1)
+  const tilt = 0.38 + 0.14 * Math.sin(time * 0.11)
+  const roll = -0.3 + 0.15 * Math.sin(time * 0.07 + 1)
   const axis: Vec = [-Math.sin(roll) * Math.cos(tilt), Math.cos(roll) * Math.cos(tilt), Math.sin(tilt)]
   const east = normalize(cross(axis, [0, 0, 1]))
   const north = cross(axis, east)
