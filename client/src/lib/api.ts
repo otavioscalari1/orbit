@@ -1,3 +1,4 @@
+import type { NoteDetail, NotePage, NoteSummary, PaperTheme, Stroke } from './board'
 import type { CalendarEvent, CalendarEventInput } from './events'
 import type { ClassItem, TimeWindow } from './schedule'
 
@@ -38,4 +39,22 @@ export const api = {
   updateEvent: (id: string, value: CalendarEventInput) =>
     request<CalendarEvent>(`/events/${id}`, { method: 'PUT', body: JSON.stringify(value) }),
   deleteEvent: (id: string) => request<void>(`/events/${id}`, { method: 'DELETE' }),
+
+  // Lousa
+  getNotes: () => request<NoteSummary[]>('/notes'),
+  createNote: (title: string) =>
+    request<NoteSummary>('/notes', { method: 'POST', body: JSON.stringify({ title }) }),
+  getNote: (id: string) => request<NoteDetail>(`/notes/${id}`),
+  updateNote: (id: string, value: { title?: string; paperTheme?: PaperTheme }) =>
+    request<{ id: string; title: string; paperTheme: PaperTheme }>(`/notes/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(value),
+    }),
+  deleteNote: (id: string) => request<void>(`/notes/${id}`, { method: 'DELETE' }),
+  addNotePage: (noteId: string, afterPosition?: number) =>
+    request<NotePage>(`/notes/${noteId}/pages`, { method: 'POST', body: JSON.stringify({ afterPosition }) }),
+  saveNotePage: (noteId: string, pageId: string, strokes: Stroke[]) =>
+    request<void>(`/notes/${noteId}/pages/${pageId}`, { method: 'PUT', body: JSON.stringify({ strokes }) }),
+  deleteNotePage: (noteId: string, pageId: string) =>
+    request<void>(`/notes/${noteId}/pages/${pageId}`, { method: 'DELETE' }),
 }

@@ -23,6 +23,7 @@ model User {
 
   classes Class[]
   events  Event[]
+  notes   Note[]
 
   @@map("users")
 }
@@ -71,4 +72,35 @@ model Event {
 
   @@index([userId, eventDate], map: "events_user_id_event_date_idx")
   @@map("events")
+}
+
+// migrations/003_create_notes_and_note_pages.sql
+model Note {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  title      String
+  paperTheme String   @default("light") @map("paper_theme")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pages NotePage[]
+
+  @@index([userId], map: "notes_user_id_idx")
+  @@map("notes")
+}
+
+// migrations/003_create_notes_and_note_pages.sql
+model NotePage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  noteId    String   @map("note_id") @db.Uuid
+  position  Int
+  strokes   Json     @default("[]")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@unique([noteId, position], map: "note_pages_note_id_position_unique")
+  @@map("note_pages")
 }

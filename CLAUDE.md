@@ -51,6 +51,10 @@ O Vite repassa toda requisição `/api/*` do frontend para o backend (proxy em `
   - `GET` e `PUT /api/time-window`: janela de horário do dia.
   - `GET`, `POST`, `PUT /:id` e `DELETE /:id` em `/api/classes`: aulas da rotina semanal.
   - `GET /api/events?from=AAAA-MM-DD&to=AAAA-MM-DD`, `POST`, `PUT /:id` e `DELETE /:id` em `/api/events`: eventos do calendário.
+  - `/api/notes` (Lousa):
+    - `GET`, `POST` e `GET`, `PATCH` e `DELETE` em `/:id`: anotações;
+    - `POST /:id/pages`, `PUT /:id/pages/:pageId` e `DELETE /:id/pages/:pageId`: folhas.
+    - Os traços ficam em `note_pages.strokes` (jsonb), em coordenadas de uma folha virtual de 1000×1414 (proporção A4). O desenho é compartilhado entre a tela e o PDF (`client/src/lib/board.ts`).
 - **Validação:** o backend sempre valida a entrada, mesmo que o frontend já valide, e responde `400` com `{ error: "mensagem em português" }`.
 
 ## Migrations do banco
