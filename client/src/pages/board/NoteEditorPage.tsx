@@ -259,9 +259,10 @@ export function NoteEditorPage() {
   }
 
   return (
-    <div className="-mx-6 -mt-6">
-      {/* Barra de ferramentas fixa no topo */}
-      <div className="sticky top-0 z-20 border-b border-white/10 bg-ink/95 px-6 py-3 backdrop-blur">
+    // -m-6 anula o espaçamento da área principal: a barra encosta no topo e só as folhas rolam
+    <div className="-m-6 flex h-[calc(100%+3rem)] flex-col">
+      {/* Barra de ferramentas fixa no topo (fora da área que rola) */}
+      <div className="z-20 shrink-0 border-b border-white/10 bg-ink px-6 py-2">
         <div className="flex flex-wrap items-center gap-3">
           <Link
             to="/lousa"
@@ -302,7 +303,7 @@ export function NoteEditorPage() {
           </button>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-3">
+        <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2">
           {/* Ferramentas */}
           <div className="flex gap-1 rounded-lg border border-white/10 p-1">
             {TOOLS.map(({ id, label, icon: Icon }) => (
@@ -393,10 +394,11 @@ export function NoteEditorPage() {
         {actionError && <p className="mt-2 text-sm text-rose-400">{actionError}</p>}
       </div>
 
-      {/* Folhas, uma embaixo da outra */}
-      <div className="mx-auto flex max-w-[52rem] flex-col gap-10 px-6 py-8">
-        {note.pages.map((page, index) => (
-          <div key={page.id} id={`page-${page.id}`} className="scroll-mt-40">
+      {/* Folhas, uma embaixo da outra (só esta área rola) */}
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto flex max-w-[52rem] flex-col gap-10 px-6 py-8">
+          {note.pages.map((page, index) => (
+            <div key={page.id} id={`page-${page.id}`} className="scroll-mt-8">
             <PageCanvas
               strokes={page.strokes}
               theme={note.paperTheme}
@@ -407,11 +409,12 @@ export function NoteEditorPage() {
               onActivate={() => setActivePageId(page.id)}
               onChange={(strokes) => handleDraw(page, strokes)}
             />
-            <p className="mt-2 text-center text-xs text-white/40">
-              {index + 1} / {note.pages.length}
-            </p>
-          </div>
-        ))}
+              <p className="mt-2 text-center text-xs text-white/40">
+                {index + 1} / {note.pages.length}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {confirmDeletePage && (
