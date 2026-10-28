@@ -1,4 +1,4 @@
-import type { NoteDetail, NotePage, NoteSummary, PaperTheme, Stroke } from './board'
+import type { NoteDetail, NotePage, NoteSummary, PageContent, PaperTheme } from './board'
 import type { CalendarEvent, CalendarEventInput } from './events'
 import type { ClassItem, TimeWindow } from './schedule'
 
@@ -53,8 +53,15 @@ export const api = {
   deleteNote: (id: string) => request<void>(`/notes/${id}`, { method: 'DELETE' }),
   addNotePage: (noteId: string, afterPosition?: number) =>
     request<NotePage>(`/notes/${noteId}/pages`, { method: 'POST', body: JSON.stringify({ afterPosition }) }),
-  saveNotePage: (noteId: string, pageId: string, strokes: Stroke[]) =>
-    request<void>(`/notes/${noteId}/pages/${pageId}`, { method: 'PUT', body: JSON.stringify({ strokes }) }),
+  saveNotePage: (noteId: string, pageId: string, content: PageContent) =>
+    request<void>(`/notes/${noteId}/pages/${pageId}`, { method: 'PUT', body: JSON.stringify(content) }),
+  // Envia o arquivo da imagem (não JSON) e recebe o id dela
+  uploadNoteImage: (noteId: string, image: Blob) =>
+    request<{ id: string }>(`/notes/${noteId}/images`, {
+      method: 'POST',
+      headers: { 'Content-Type': image.type },
+      body: image,
+    }),
   deleteNotePage: (noteId: string, pageId: string) =>
     request<void>(`/notes/${noteId}/pages/${pageId}`, { method: 'DELETE' }),
 }

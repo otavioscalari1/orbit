@@ -83,8 +83,9 @@ model Note {
   createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt  DateTime @default(now()) @map("updated_at") @db.Timestamptz
 
-  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  pages NotePage[]
+  user   User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pages  NotePage[]
+  images NoteImage[]
 
   @@index([userId], map: "notes_user_id_idx")
   @@map("notes")
@@ -96,6 +97,7 @@ model NotePage {
   noteId    String   @map("note_id") @db.Uuid
   position  Int
   strokes   Json     @default("[]")
+  elements  Json     @default("[]") // migrations/004
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
   updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
 
@@ -103,4 +105,18 @@ model NotePage {
 
   @@unique([noteId, position], map: "note_pages_note_id_position_unique")
   @@map("note_pages")
+}
+
+// migrations/004_add_note_page_elements_and_images.sql
+model NoteImage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  noteId    String   @map("note_id") @db.Uuid
+  mimeType  String   @map("mime_type")
+  data      Bytes
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  note Note @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@index([noteId], map: "note_images_note_id_idx")
+  @@map("note_images")
 }

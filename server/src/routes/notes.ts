@@ -1,4 +1,4 @@
-import { Router } from 'express'
+import express, { Router } from 'express'
 import type { Note, NotePage } from '../generated/prisma/client.ts'
 import { getCurrentUser } from '../lib/currentUser.ts'
 import { prisma } from '../lib/prisma.ts'
@@ -43,6 +43,45 @@ function parseStrokes(value: unknown): Stroke[] | string {
   return value as Stroke[]
 }
 
+const MAX_ELEMENTS_PER_PAGE = 500
+const SHAPES = ['rectangle', 'ellipse', 'triangle', 'line', 'arrow']
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif']
+
+const isColor = (value: unknown) =>
+  typeof value === 'string' && (value === 'auto' || /^#[0-9a-fA-F]{6}$/.test(value))
+const isNumberBetween = (value: unknown, min: number, max: number) =>
+  typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max
+
+// Valida os elementos (imagens, textos e formas) da folha. Retorna a lista ou uma mensagem de erro.
+function parseElements(value: unknown): unknown[] | string {
+  if (!Array.isArray(value)) return 'Elementos inválidos.'
+  if (value.length > MAX_ELEMENTS_PER_PAGE) return 'Esta folha tem elementos demais.'
+
+  for (const element of value) {
+    const el = (element ?? {}) as Record<string, unknown>
+    if (typeof el.id !== 'string' || el.id.length === 0 || el.id.length > 64) return 'Elemento inválido.'
+    // Posição e tamanho em unidades da folha virtual (com folga para algo arrastado para fora)
+    if (!['x', 'y', 'w', 'h'].every((key) => isNumberBetween(el[key], -5000, 5000))) {
+      return 'Posição de elemento inválida.'
+    }
+
+    if (el.type === 'image') {
+      if (typeof el.imageId !== 'string' || !UUID_PATTERN.test(el.imageId)) return 'Imagem inválida.'
+    } else if (el.type === 'text') {
+      if (typeof el.text !== 'string' || el.text.length > 5000) return 'Texto inválido.'
+      if (!isColor(el.color) || !isNumberBetween(el.fontSize, 8, 200)) return 'Formato de texto inválido.'
+    } else if (el.type === 'shape') {
+      if (!SHAPES.includes(el.shape as string)) return 'Forma inválida.'
+      if (!isColor(el.color) || !isNumberBetween(el.strokeWidth, 1, 40)) return 'Formato da forma inválido.'
+    } else {
+      return 'Tipo de elemento inválido.'
+    }
+  }
+
+  return value
+}
+
 function toNoteSummary(note: Note & { _count: { pages: number } }) {
   return {
     id: note.id,
@@ -54,7 +93,7 @@ function toNoteSummary(note: Note & { _count: { pages: number } }) {
 }
 
 function toPage(page: NotePage) {
-  return { id: page.id, position: page.position, strokes: page.strokes }
+  return { id: page.id, position: page.position, strokes: page.strokes, elements: page.elements }
 }
 
 // Busca uma anotação do usuário atual (ou null se não existir / for de outro usuário)
@@ -178,7 +217,7 @@ notesRouter.post('/:id/pages', async (req, res) => {
   res.status(201).json(toPage(page))
 })
 
-// Salva os traços de uma folha: { strokes: [...] }
+// Salva o conteúdo de uma folha: { strokes: [...], elements: [...] }
 notesRouter.put('/:id/pages/:pageId', async (req, res) => {
   const note = await findNote(req.params.id)
   if (!note) {
@@ -191,10 +230,15 @@ notesRouter.put('/:id/pages/:pageId', async (req, res) => {
     res.status(400).json({ error: strokes })
     return
   }
+  const elements = parseElements((req.body ?? {}).elements ?? [])
+  if (typeof elements === 'string') {
+    res.status(400).json({ error: elements })
+    return
+  }
 
   const { count } = await prisma.notePage.updateMany({
     where: { id: req.params.pageId, noteId: note.id },
-    data: { strokes, updatedAt: new Date() },
+    data: { strokes, elements: elements as object[], updatedAt: new Date() },
   })
   if (count === 0) {
     res.status(404).json({ error: 'Folha não encontrada.' })
@@ -231,4 +275,46 @@ notesRouter.delete('/:id/pages/:pageId', async (req, res) => {
     prisma.note.update({ where: { id: note.id }, data: { updatedAt: new Date() } }),
   ])
   res.status(204).end()
+})
+
+// Recebe uma imagem (o arquivo em si, não JSON) e guarda no banco. Responde { id }.
+notesRouter.post(
+  '/:id/images',
+  express.raw({ type: IMAGE_TYPES, limit: '8mb' }),
+  async (req, res) => {
+    const note = await findNote(req.params.id)
+    if (!note) {
+      res.status(404).json({ error: 'Anotação não encontrada.' })
+      return
+    }
+
+    const mimeType = req.headers['content-type']?.split(';')[0].trim() ?? ''
+    if (!IMAGE_TYPES.includes(mimeType) || !Buffer.isBuffer(req.body) || req.body.length === 0) {
+      res.status(400).json({ error: 'Envie uma imagem PNG, JPEG, WebP ou GIF.' })
+      return
+    }
+
+    const image = await prisma.noteImage.create({
+      data: { noteId: note.id, mimeType, data: new Uint8Array(req.body) },
+      select: { id: true },
+    })
+    res.status(201).json({ id: image.id })
+  },
+)
+
+// Devolve o arquivo da imagem (usado pela tag <img> e pelo canvas)
+notesRouter.get('/:id/images/:imageId', async (req, res) => {
+  const note = await findNote(req.params.id)
+  const image =
+    note && UUID_PATTERN.test(req.params.imageId)
+      ? await prisma.noteImage.findFirst({ where: { id: req.params.imageId, noteId: note.id } })
+      : null
+  if (!image) {
+    res.status(404).json({ error: 'Imagem não encontrada.' })
+    return
+  }
+
+  // A imagem nunca muda depois de enviada: o navegador pode guardar em cache
+  res.set('Cache-Control', 'private, max-age=31536000, immutable')
+  res.type(image.mimeType).send(Buffer.from(image.data))
 })
