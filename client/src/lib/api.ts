@@ -1,7 +1,7 @@
 import type { NoteDetail, NotePage, NoteSummary, PageContent, PaperTheme } from './board'
 import type { CalendarEvent, CalendarEventInput } from './events'
 import type { ClassItem, TimeWindow } from './schedule'
-import type { Video } from './videos'
+import type { Video, VideoFolder } from './videos'
 
 // Faz uma requisição para o backend. Se der erro, lança a mensagem que o servidor mandou.
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -68,6 +68,16 @@ export const api = {
 
   // Vídeos
   getVideos: () => request<Video[]>('/videos'),
-  addVideo: (url: string) => request<Video>('/videos', { method: 'POST', body: JSON.stringify({ url }) }),
+  addVideo: (url: string, folderId: string | null) =>
+    request<Video>('/videos', { method: 'POST', body: JSON.stringify({ url, folderId }) }),
+  moveVideo: (id: string, folderId: string | null) =>
+    request<Video>(`/videos/${id}`, { method: 'PATCH', body: JSON.stringify({ folderId }) }),
   deleteVideo: (id: string) => request<void>(`/videos/${id}`, { method: 'DELETE' }),
+
+  getVideoFolders: () => request<VideoFolder[]>('/video-folders'),
+  createVideoFolder: (name: string) =>
+    request<VideoFolder>('/video-folders', { method: 'POST', body: JSON.stringify({ name }) }),
+  renameVideoFolder: (id: string, name: string) =>
+    request<VideoFolder>(`/video-folders/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
+  deleteVideoFolder: (id: string) => request<void>(`/video-folders/${id}`, { method: 'DELETE' }),
 }

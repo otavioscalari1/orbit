@@ -4,6 +4,15 @@ export type Video = {
   youtubeId: string // código de 11 caracteres do vídeo
   title: string
   channelName: string | null
+  folderId: string | null // null = "Sem pasta"
+  createdAt: string
+}
+
+// Pasta para organizar os vídeos
+export type VideoFolder = {
+  id: string
+  name: string
+  videoCount: number
   createdAt: string
 }
 

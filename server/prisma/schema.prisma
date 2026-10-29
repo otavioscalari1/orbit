@@ -24,7 +24,8 @@ model User {
   classes Class[]
   events  Event[]
   notes   Note[]
-  videos  Video[]
+  videos       Video[]
+  videoFolders VideoFolder[]
 
   @@map("users")
 }
@@ -129,11 +130,27 @@ model Video {
   youtubeId   String   @map("youtube_id")
   title       String
   channelName String?  @map("channel_name")
+  folderId    String?  @map("folder_id") @db.Uuid // migrations/006
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder VideoFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
 
   @@unique([userId, youtubeId], map: "videos_user_id_youtube_id_unique")
+  @@index([folderId], map: "videos_folder_id_idx")
   @@map("videos")
 }
 
+// migrations/006_create_video_folders.sql
+// (o índice único de nome, que ignora maiúsculas, existe só no banco: o Prisma não representa lower(name))
+model VideoFolder {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  name      String
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  videos Video[]
+
+  @@map("video_folders")
+}
