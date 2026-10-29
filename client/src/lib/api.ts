@@ -1,6 +1,7 @@
 import type { NoteDetail, NotePage, NoteSummary, PageContent, PaperTheme } from './board'
 import type { CalendarEvent, CalendarEventInput } from './events'
 import type { ClassItem, TimeWindow } from './schedule'
+import type { Video } from './videos'
 
 // Faz uma requisição para o backend. Se der erro, lança a mensagem que o servidor mandou.
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -64,4 +65,9 @@ export const api = {
     }),
   deleteNotePage: (noteId: string, pageId: string) =>
     request<void>(`/notes/${noteId}/pages/${pageId}`, { method: 'DELETE' }),
+
+  // Vídeos
+  getVideos: () => request<Video[]>('/videos'),
+  addVideo: (url: string) => request<Video>('/videos', { method: 'POST', body: JSON.stringify({ url }) }),
+  deleteVideo: (id: string) => request<void>(`/videos/${id}`, { method: 'DELETE' }),
 }

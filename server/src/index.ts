@@ -6,6 +6,7 @@ import { classesRouter } from './routes/classes.ts'
 import { eventsRouter } from './routes/events.ts'
 import { notesRouter } from './routes/notes.ts'
 import { timeWindowRouter } from './routes/timeWindow.ts'
+import { videosRouter } from './routes/videos.ts'
 
 const app = express()
 const PORT = Number(process.env.SERVER_PORT ?? 3333)
@@ -28,6 +29,7 @@ app.use('/api/time-window', timeWindowRouter)
 app.use('/api/classes', classesRouter)
 app.use('/api/events', eventsRouter)
 app.use('/api/notes', notesRouter)
+app.use('/api/videos', videosRouter)
 
 // Qualquer erro não tratado nas rotas cai aqui
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {

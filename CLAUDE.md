@@ -58,6 +58,9 @@ O Vite repassa toda requisição `/api/*` do frontend para o backend (proxy em `
     - Os traços à mão ficam em `note_pages.strokes` e os elementos editáveis (imagem, texto, forma) em `note_pages.elements`, ambos jsonb, em coordenadas de uma folha virtual de 1000×1414 (proporção A4).
     - As imagens ficam na tabela `note_images` (bytea), reduzidas para no máximo 1600 px antes do envio.
     - O desenho é compartilhado entre a tela e o PDF (`client/src/lib/board.ts`).
+  - `GET`, `POST` (`{ url }`) e `DELETE /:id` em `/api/videos`: biblioteca de vídeos do YouTube.
+    - O backend extrai o código do vídeo do link (`server/src/lib/youtube.ts`) e busca título e canal no oEmbed do YouTube, que é público e não precisa de chave.
+    - O player usa o domínio `youtube-nocookie.com`.
 - **Validação:** o backend sempre valida a entrada, mesmo que o frontend já valide, e responde `400` com `{ error: "mensagem em português" }`.
 
 ## Migrations do banco

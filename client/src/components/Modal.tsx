@@ -5,10 +5,11 @@ type ModalProps = {
   title: string
   onClose: () => void
   children: ReactNode
+  size?: 'md' | 'xl' // xl: janelas largas, como o player de vídeo
 }
 
 // Janela que abre por cima da tela. Fecha com Esc, no X ou clicando fora.
-export function Modal({ title, onClose, children }: ModalProps) {
+export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === 'Escape') onClose()
@@ -24,7 +25,15 @@ export function Modal({ title, onClose, children }: ModalProps) {
         if (event.target === event.currentTarget) onClose()
       }}
     >
-      <div role="dialog" aria-modal="true" aria-label={title} className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-ink-light p-6 shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className={
+          'max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-white/10 bg-ink-light p-6 shadow-2xl ' +
+          (size === 'xl' ? 'max-w-4xl' : 'max-w-md')
+        }
+      >
         <div className="mb-5 flex items-center justify-between">
           <h2 className="text-xl font-semibold">{title}</h2>
           <button

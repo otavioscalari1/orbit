@@ -24,6 +24,7 @@ model User {
   classes Class[]
   events  Event[]
   notes   Note[]
+  videos  Video[]
 
   @@map("users")
 }
@@ -120,3 +121,19 @@ model NoteImage {
   @@index([noteId], map: "note_images_note_id_idx")
   @@map("note_images")
 }
+
+// migrations/005_create_videos.sql
+model Video {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  youtubeId   String   @map("youtube_id")
+  title       String
+  channelName String?  @map("channel_name")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, youtubeId], map: "videos_user_id_youtube_id_unique")
+  @@map("videos")
+}
+
