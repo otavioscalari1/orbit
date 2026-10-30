@@ -59,6 +59,7 @@ O Vite repassa toda requisição `/api/*` do frontend para o backend (proxy em `
     - As imagens ficam na tabela `note_images` (bytea), reduzidas para no máximo 1600 px antes do envio.
     - O desenho é compartilhado entre a tela e o PDF (`client/src/lib/board.ts`).
   - `GET`, `POST` (`{ url, folderId? }`), `PATCH /:id` (`{ folderId }`, para mover de pasta) e `DELETE /:id` em `/api/videos`: biblioteca de vídeos do YouTube.
+  - `GET` e `PUT /api/videos/:id/notes` (`{ notes }`): bloco de notas do vídeo, até 200.000 caracteres. As notas não vêm na lista de vídeos (`omit`), só ao abrir o vídeo.
   - `GET`, `POST` e `PATCH /:id` (`{ name }`) e `DELETE /:id` em `/api/video-folders`: pastas de vídeos.
     - Cada vídeo fica em uma pasta, ou em nenhuma (`folder_id` nulo = "Sem pasta").
     - Excluir uma pasta não apaga os vídeos: eles voltam para "Sem pasta".

@@ -6,7 +6,10 @@ import { extractYoutubeId, fetchYoutubeInfo } from '../lib/youtube.ts'
 
 export const videosRouter = Router()
 
-function toResponse(video: Video) {
+const MAX_NOTES_LENGTH = 200_000
+
+// As notas não vão na lista (podem ser grandes): são buscadas só ao abrir o vídeo
+function toResponse(video: Omit<Video, 'notes'>) {
   return {
     id: video.id,
     youtubeId: video.youtubeId,
@@ -29,7 +32,11 @@ async function parseFolderId(value: unknown, userId: string): Promise<string | n
 // Lista os vídeos da biblioteca, dos adicionados por último para os mais antigos
 videosRouter.get('/', async (_req, res) => {
   const user = await getCurrentUser()
-  const videos = await prisma.video.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' } })
+  const videos = await prisma.video.findMany({
+    where: { userId: user.id },
+    omit: { notes: true },
+    orderBy: { createdAt: 'desc' },
+  })
   res.json(videos.map(toResponse))
 })
 
@@ -88,7 +95,7 @@ videosRouter.patch('/:id', async (req, res) => {
     return
   }
 
-  const updated = await prisma.video.update({ where: { id: video.id }, data: { folderId } })
+  const updated = await prisma.video.update({ where: { id: video.id }, data: { folderId }, omit: { notes: true } })
   res.json(toResponse(updated))
 })
 
@@ -96,6 +103,39 @@ videosRouter.patch('/:id', async (req, res) => {
 videosRouter.delete('/:id', async (req, res) => {
   const user = await getCurrentUser()
   const { count } = await prisma.video.deleteMany({ where: { id: req.params.id, userId: user.id } })
+  if (count === 0) {
+    res.status(404).json({ error: 'Vídeo não encontrado.' })
+    return
+  }
+  res.status(204).end()
+})
+
+// Bloco de notas do vídeo: { notes: "..." }
+videosRouter.get('/:id/notes', async (req, res) => {
+  const user = await getCurrentUser()
+  const video = await prisma.video.findFirst({ where: { id: req.params.id, userId: user.id }, select: { notes: true } })
+  if (!video) {
+    res.status(404).json({ error: 'Vídeo não encontrado.' })
+    return
+  }
+  res.json({ notes: video.notes })
+})
+
+// Salva o bloco de notas do vídeo: { notes: "..." } (até 200.000 caracteres)
+videosRouter.put('/:id/notes', async (req, res) => {
+  const { notes } = (req.body ?? {}) as { notes?: unknown }
+  if (typeof notes !== 'string') {
+    res.status(400).json({ error: 'Notas inválidas.' })
+    return
+  }
+  // Conta caracteres de verdade (emojis e acentos contam como 1, igual ao banco)
+  if ([...notes].length > MAX_NOTES_LENGTH) {
+    res.status(400).json({ error: 'As notas podem ter no máximo 200.000 caracteres.' })
+    return
+  }
+
+  const user = await getCurrentUser()
+  const { count } = await prisma.video.updateMany({ where: { id: req.params.id, userId: user.id }, data: { notes } })
   if (count === 0) {
     res.status(404).json({ error: 'Vídeo não encontrado.' })
     return

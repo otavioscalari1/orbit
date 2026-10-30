@@ -73,6 +73,9 @@ export const api = {
   moveVideo: (id: string, folderId: string | null) =>
     request<Video>(`/videos/${id}`, { method: 'PATCH', body: JSON.stringify({ folderId }) }),
   deleteVideo: (id: string) => request<void>(`/videos/${id}`, { method: 'DELETE' }),
+  getVideoNotes: (id: string) => request<{ notes: string }>(`/videos/${id}/notes`),
+  saveVideoNotes: (id: string, notes: string) =>
+    request<void>(`/videos/${id}/notes`, { method: 'PUT', body: JSON.stringify({ notes }) }),
 
   getVideoFolders: () => request<VideoFolder[]>('/video-folders'),
   createVideoFolder: (name: string) =>

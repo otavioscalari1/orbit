@@ -1,12 +1,12 @@
-import { Clapperboard, ExternalLink, FolderInput, Play, Plus, Search, Trash2 } from 'lucide-react'
+import { Clapperboard, FolderInput, Play, Plus, Search, Trash2 } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useSearchParams } from 'react-router'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { Modal } from '../../components/Modal'
 import { api } from '../../lib/api'
-import { videoEmbedUrl, videoThumbnailUrl, videoWatchUrl, type Video, type VideoFolder } from '../../lib/videos'
+import { videoThumbnailUrl, type Video, type VideoFolder } from '../../lib/videos'
 import { FolderList, type FolderView } from './FolderList'
 import { FolderFormDialog, MoveVideoDialog } from './VideoDialogs'
+import { VideoPlayerDialog } from './VideoPlayerDialog'
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready' }
 
@@ -220,32 +220,7 @@ export function VideosPage() {
 
       {/* ---- Janelas ---- */}
 
-      {dialog?.kind === 'play' && (
-        <Modal title={dialog.video.title} size="xl" onClose={() => setDialog(null)}>
-          <div className="aspect-video overflow-hidden rounded-lg bg-black">
-            <iframe
-              src={videoEmbedUrl(dialog.video.youtubeId)}
-              title={dialog.video.title}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-              className="h-full w-full"
-            />
-          </div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm">
-            <span className="text-white/60">{dialog.video.channelName}</span>
-            <a
-              href={videoWatchUrl(dialog.video.youtubeId)}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1.5 font-medium text-brand hover:text-white"
-            >
-              Abrir no YouTube
-              <ExternalLink className="h-4 w-4" />
-            </a>
-          </div>
-        </Modal>
-      )}
+      {dialog?.kind === 'play' && <VideoPlayerDialog video={dialog.video} onClose={() => setDialog(null)} />}
 
       {dialog?.kind === 'move' && (
         <MoveVideoDialog

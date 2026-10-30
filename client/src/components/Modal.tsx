@@ -5,7 +5,7 @@ type ModalProps = {
   title: string
   onClose: () => void
   children: ReactNode
-  size?: 'md' | 'xl' // xl: janelas largas, como o player de vídeo
+  size?: 'md' | 'xl' | '2xl' // xl/2xl: janelas largas, como o player de vídeo com notas
 }
 
 // Janela que abre por cima da tela. Fecha com Esc, no X ou clicando fora.
@@ -31,7 +31,7 @@ export function Modal({ title, onClose, children, size = 'md' }: ModalProps) {
         aria-label={title}
         className={
           'max-h-[90vh] w-full overflow-y-auto rounded-2xl border border-white/10 bg-ink-light p-6 shadow-2xl ' +
-          (size === 'xl' ? 'max-w-4xl' : 'max-w-md')
+          { md: 'max-w-md', xl: 'max-w-4xl', '2xl': 'max-w-7xl' }[size]
         }
       >
         <div className="mb-5 flex items-center justify-between">
