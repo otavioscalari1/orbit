@@ -64,7 +64,9 @@ O Vite repassa toda requisição `/api/*` do frontend para o backend (proxy em `
     - Cada vídeo fica em uma pasta, ou em nenhuma (`folder_id` nulo = "Sem pasta").
     - Excluir uma pasta não apaga os vídeos: eles voltam para "Sem pasta".
     - O backend extrai o código do vídeo do link (`server/src/lib/youtube.ts`) e busca título e canal no oEmbed do YouTube, que é público e não precisa de chave.
-    - O player usa o domínio `youtube-nocookie.com`.
+    - O player usa o domínio `youtube-nocookie.com`, com `enablejsapi=1`.
+    - O app controla o player pela IFrame Player API do YouTube (`client/src/lib/youtubePlayer.ts`).
+    - Marcações de tempo nas notas (`[mm:ss]` ou `[h:mm:ss]`) ficam no próprio texto da nota e levam o vídeo até aquele momento.
 - **Validação:** o backend sempre valida a entrada, mesmo que o frontend já valide, e responde `400` com `{ error: "mensagem em português" }`.
 
 ## Migrations do banco
