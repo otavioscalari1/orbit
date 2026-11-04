@@ -1,6 +1,7 @@
 import type { NoteDetail, NotePage, NoteSummary, PageContent, PaperTheme } from './board'
 import type { CalendarEvent, CalendarEventInput } from './events'
 import type { DueFlashcard, FlashcardSummary, Grade } from './flashcards'
+import type { ResumeContent } from './resume'
 import type { ClassItem, TimeWindow } from './schedule'
 import type { Video, VideoFolder } from './videos'
 
@@ -95,4 +96,13 @@ export const api = {
   renameVideoFolder: (id: string, name: string) =>
     request<VideoFolder>(`/video-folders/${id}`, { method: 'PATCH', body: JSON.stringify({ name }) }),
   deleteVideoFolder: (id: string) => request<void>(`/video-folders/${id}`, { method: 'DELETE' }),
+
+  // Currículo
+  getResume: () => request<{ content: Partial<ResumeContent>; hasPhoto: boolean }>('/resume'),
+  saveResume: (content: ResumeContent) =>
+    request<void>('/resume', { method: 'PUT', body: JSON.stringify({ content }) }),
+  // Envia o arquivo da foto (não JSON)
+  uploadResumePhoto: (photo: Blob) =>
+    request<void>('/resume/photo', { method: 'PUT', headers: { 'Content-Type': photo.type }, body: photo }),
+  deleteResumePhoto: () => request<void>('/resume/photo', { method: 'DELETE' }),
 }

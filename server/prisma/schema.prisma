@@ -27,6 +27,7 @@ model User {
   videos       Video[]
   videoFolders VideoFolder[]
   flashcards   Flashcard[]
+  resume       Resume?
 
   @@map("users")
 }
@@ -182,4 +183,18 @@ model Flashcard {
   @@unique([videoId, questionKey], map: "flashcards_video_id_question_key_unique")
   @@index([userId, dueAt], map: "flashcards_user_id_due_at_idx")
   @@map("flashcards")
+}
+
+// migrations/009_create_resumes.sql
+model Resume {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @unique(map: "resumes_user_id_unique") @map("user_id") @db.Uuid
+  content   Json     @default("{}")
+  photo     Bytes?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("resumes")
 }

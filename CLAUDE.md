@@ -72,6 +72,11 @@ O Vite repassa toda requisição `/api/*` do frontend para o backend (proxy em `
     - O player usa o domínio `youtube-nocookie.com`, com `enablejsapi=1`.
     - O app controla o player pela IFrame Player API do YouTube (`client/src/lib/youtubePlayer.ts`).
     - Marcações de tempo nas notas (`[mm:ss]` ou `[h:mm:ss]`) ficam no próprio texto da nota e levam o vídeo até aquele momento.
+  - `/api/resume` (Currículo):
+    - `GET` e `PUT` (`{ content }`): o formulário inteiro, em `resumes.content` (jsonb). Cada usuário tem no máximo um currículo.
+    - `GET`, `PUT` (o arquivo da foto, não JSON) e `DELETE` em `/photo`: foto opcional, sempre em JPEG e recortada no navegador.
+    - O backend aceita campos vazios, porque o currículo é salvo aos poucos. O que é obrigatório para baixar fica em `client/src/lib/resume.ts`.
+    - O PDF é gerado no navegador (`client/src/lib/resumePdf.ts`) com o texto escrito direto no arquivo, não como imagem, para continuar selecionável.
 - **Validação:** o backend sempre valida a entrada, mesmo que o frontend já valide, e responde `400` com `{ error: "mensagem em português" }`.
 
 ## Migrations do banco
