@@ -126,7 +126,7 @@ COMMIT;
 - **Fonte**: Outfit (Google Fonts), aplicada via `font-display`. JetBrains Mono (`font-mono`) para rótulos técnicos e arte ASCII.
 - **Títulos de destaque**: grandes, em negrito e com letras juntas (`tracking-[-0.02em]`).
 - **Rótulos técnicos**: `font-mono`, maiúsculos, com um `•` na cor `brand` na frente (ex.: "• ORBIT").
-- **Saturno em ASCII** (`client/src/components/AsciiSaturn.tsx`): animação da Home, com o planeta branco e o anel `brand`, girando devagar. Inspirado na textura ASCII do `DESIGN (1).md`. Desse arquivo aproveitamos só o estilo, não as cores.
+- **Saturno de fundo** (`client/src/components/SaturnBackground.tsx`): fundo da Home, realista, grande e cortado pela borda da tela, em tons de azul do tema e parado. É desenhado com WebGL, sem imagem e sem biblioteca. A Home não tem rolagem.
 - **Logo**: "orbit" todo em minúsculo, "or" branco e "bit" na cor `brand`. O "o" tem um anel de Saturno inclinado a 45°, com a metade de trás atrás da letra e a da frente por cima. Componente: `client/src/components/Logo.tsx`.
 - **Favicon**: o "o" com anel sobre um quadrado `ink` com cantos arredondados (`client/public/favicon.svg`).
 

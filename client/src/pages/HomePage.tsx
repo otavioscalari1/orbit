@@ -1,14 +1,19 @@
-import { AsciiSaturn } from '../components/AsciiSaturn'
 import { Logo } from '../components/Logo'
+import { SaturnBackground } from '../components/SaturnBackground'
 import { UpcomingCards } from './home/UpcomingCards'
 
 const FEATURES = ['Calendário', 'Rotina de aulas', 'Questões', 'Arquivos']
 
 export function HomePage() {
   return (
-    <div className="mx-auto flex h-full max-w-7xl flex-col">
-      {/* Texto à esquerda e, em telas largas, os cards de próxima aula/evento à direita */}
-      <div className="grid gap-8 pt-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
+    // A margem negativa desfaz o espaçamento do layout, para o planeta encostar nas bordas.
+    // A altura exata e o overflow-hidden garantem que a Home não tenha rolagem.
+    <div className="relative -m-6 h-[calc(100%+3rem)] overflow-hidden">
+      <SaturnBackground className="absolute inset-0" />
+
+      {/* Texto à esquerda e, em telas largas, os cards de próxima aula/evento à direita.
+          Só rola aqui dentro se a janela for pequena demais para caber tudo. */}
+      <div className="relative mx-auto grid h-full max-w-7xl content-start gap-8 overflow-y-auto p-6 pt-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         <section>
           <Logo className="text-5xl" />
 
@@ -33,9 +38,6 @@ export function HomePage() {
 
         <UpcomingCards className="sm:grid-cols-2 lg:grid-cols-1" />
       </div>
-
-      {/* Saturno ocupa o espaço que sobra embaixo */}
-      <AsciiSaturn className="mt-6 min-h-[28rem] flex-1" />
     </div>
   )
 }
