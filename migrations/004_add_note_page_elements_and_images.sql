@@ -12,7 +12,7 @@ ALTER TABLE note_pages
 -- Os elementos de imagem em note_pages.elements apontam para o id daqui.
 CREATE TABLE note_images (
     id         uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
-    note_id    uuid        NOT NULL REFERENCES notes (id) ON DELETE CASCADE,
+    note_id    uuid        NOT NULL REFERENCES notes (id ) ON DELETE CASCADE,
     mime_type  text        NOT NULL,
     data       bytea       NOT NULL,
     created_at timestamptz NOT NULL DEFAULT now(),

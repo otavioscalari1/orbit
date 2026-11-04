@@ -2,6 +2,7 @@ import { Router } from 'express'
 import type { Video } from '../generated/prisma/client.ts'
 import { getCurrentUser } from '../lib/currentUser.ts'
 import { prisma } from '../lib/prisma.ts'
+import { syncVideoFlashcards } from '../lib/flashcards.ts'
 import { extractYoutubeId, fetchYoutubeInfo } from '../lib/youtube.ts'
 
 export const videosRouter = Router()
@@ -135,10 +136,17 @@ videosRouter.put('/:id/notes', async (req, res) => {
   }
 
   const user = await getCurrentUser()
-  const { count } = await prisma.video.updateMany({ where: { id: req.params.id, userId: user.id }, data: { notes } })
-  if (count === 0) {
+  const video = await prisma.video.findFirst({ where: { id: req.params.id, userId: user.id }, select: { id: true } })
+  if (!video) {
     res.status(404).json({ error: 'Vídeo não encontrado.' })
     return
   }
+
+  // Salva a nota e atualiza os flashcards (linhas "pergunta :: resposta") juntos:
+  // se uma parte falhar, nenhuma é aplicada
+  await prisma.$transaction(async (tx) => {
+    await tx.video.update({ where: { id: video.id }, data: { notes }, select: { id: true } })
+    await syncVideoFlashcards(tx, user.id, video.id, notes)
+  })
   res.status(204).end()
 })

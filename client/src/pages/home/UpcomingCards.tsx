@@ -1,8 +1,9 @@
-import { ArrowRight, CalendarDays, Clock } from 'lucide-react'
+import { ArrowRight, CalendarDays, Clock, Layers } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { api } from '../../lib/api'
 import type { CalendarEvent } from '../../lib/events'
+import type { FlashcardSummary } from '../../lib/flashcards'
 import { toDateKey } from '../../lib/holidays'
 import type { ClassItem } from '../../lib/schedule'
 import {
@@ -41,9 +42,15 @@ export function UpcomingCards({ className = '' }: { className?: string }) {
   const now = useNow()
   const [classes, setClasses] = useState<Loadable<ClassItem[]>>({ status: 'loading' })
   const [events, setEvents] = useState<Loadable<CalendarEvent[]>>({ status: 'loading' })
+  const [review, setReview] = useState<Loadable<FlashcardSummary>>({ status: 'loading' })
 
   useEffect(() => {
     const today = new Date()
+
+    api
+      .getFlashcardSummary()
+      .then((data) => setReview({ status: 'ready', data }))
+      .catch(() => setReview({ status: 'error' }))
     const nextYear = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate())
 
     api
@@ -62,7 +69,43 @@ export function UpcomingCards({ className = '' }: { className?: string }) {
     <div className={'grid gap-4 ' + className}>
       <NextClassCard state={classes} now={now} />
       <NextEventCard state={events} now={now} />
+      <ReviewCard state={review} />
     </div>
+  )
+}
+
+// Card compacto: quantos flashcards vencem hoje
+function ReviewCard({ state }: { state: Loadable<FlashcardSummary> }) {
+  const due = state.status === 'ready' ? state.data.dueToday : 0
+  const total = state.status === 'ready' ? state.data.total : 0
+
+  return (
+    <Link
+      to="/revisao"
+      className="flex items-center gap-4 rounded-xl border border-white/10 bg-ink-light px-5 py-4 transition hover:border-brand/50 sm:col-span-2 lg:col-span-1"
+    >
+      <Layers className={'h-6 w-6 shrink-0 ' + (due > 0 ? 'text-brand' : 'text-white/30')} />
+      <div className="min-w-0 flex-1">
+        <h2 className="font-mono text-xs uppercase tracking-wider text-white/50">
+          <span className="text-brand">•</span> Revisão
+        </h2>
+        <p className="mt-0.5 truncate text-sm">
+          {state.status === 'loading' && <span className="text-white/50">Carregando...</span>}
+          {state.status === 'error' && <span className="text-white/50">Não foi possível carregar</span>}
+          {state.status === 'ready' &&
+            (due > 0 ? (
+              <span className="font-semibold">
+                {due} {due === 1 ? 'flashcard para revisar hoje' : 'flashcards para revisar hoje'}
+              </span>
+            ) : total > 0 ? (
+              <span className="text-white/70">Tudo revisado por hoje</span>
+            ) : (
+              <span className="text-white/50">Crie flashcards com "pergunta :: resposta" nas notas</span>
+            ))}
+        </p>
+      </div>
+      <ArrowRight className="h-4 w-4 shrink-0 text-brand" />
+    </Link>
   )
 }
 

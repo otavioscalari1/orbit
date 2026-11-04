@@ -1,4 +1,4 @@
-import { CalendarDays, Clapperboard, House, Presentation, type LucideIcon } from 'lucide-react'
+import { CalendarDays, Clapperboard, House, Layers, Presentation, type LucideIcon } from 'lucide-react'
 import { NavLink } from 'react-router'
 
 type NavItem = {
@@ -26,6 +26,7 @@ const groups: NavGroup[] = [
       { label: 'Calendário', to: '/calendario', icon: CalendarDays },
       { label: 'Lousa', to: '/lousa', icon: Presentation },
       { label: 'Vídeos', to: '/videos', icon: Clapperboard },
+      { label: 'Revisão', to: '/revisao', icon: Layers },
     ],
   },
 ]

@@ -23,8 +23,10 @@ export function videoThumbnailUrl(youtubeId: string) {
 
 // Player incorporado. O domínio "youtube-nocookie" não grava cookies de rastreamento até o vídeo tocar.
 // enablejsapi=1 permite controlar o player pelo app (ler o tempo atual e pular para um momento).
-export function videoEmbedUrl(youtubeId: string) {
+// startSeconds: começa o vídeo num momento específico (ex.: "Ver no vídeo" de um flashcard)
+export function videoEmbedUrl(youtubeId: string, startSeconds?: number | null) {
   const params = new URLSearchParams({ autoplay: '1', rel: '0', enablejsapi: '1', origin: window.location.origin })
+  if (startSeconds) params.set('start', String(Math.floor(startSeconds)))
   return `https://www.youtube-nocookie.com/embed/${youtubeId}?${params}`
 }
 

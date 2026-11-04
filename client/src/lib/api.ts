@@ -1,5 +1,6 @@
 import type { NoteDetail, NotePage, NoteSummary, PageContent, PaperTheme } from './board'
 import type { CalendarEvent, CalendarEventInput } from './events'
+import type { DueFlashcard, FlashcardSummary, Grade } from './flashcards'
 import type { ClassItem, TimeWindow } from './schedule'
 import type { Video, VideoFolder } from './videos'
 
@@ -76,6 +77,17 @@ export const api = {
   getVideoNotes: (id: string) => request<{ notes: string }>(`/videos/${id}/notes`),
   saveVideoNotes: (id: string, notes: string) =>
     request<void>(`/videos/${id}/notes`, { method: 'PUT', body: JSON.stringify({ notes }) }),
+
+  // Flashcards (gerados das notas dos vídeos)
+  getFlashcardSummary: () => request<FlashcardSummary>('/flashcards/summary'),
+  // folder: "all", "none" (sem pasta) ou o id de uma pasta de vídeos
+  getDueFlashcards: (folder: string) =>
+    request<DueFlashcard[]>(`/flashcards/due?${new URLSearchParams({ folder })}`),
+  reviewFlashcard: (id: string, grade: Grade) =>
+    request<{ intervalDays: number; dueAt: string }>(`/flashcards/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ grade }),
+    }),
 
   getVideoFolders: () => request<VideoFolder[]>('/video-folders'),
   createVideoFolder: (name: string) =>

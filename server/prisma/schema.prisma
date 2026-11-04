@@ -26,6 +26,7 @@ model User {
   notes   Note[]
   videos       Video[]
   videoFolders VideoFolder[]
+  flashcards   Flashcard[]
 
   @@map("users")
 }
@@ -134,8 +135,9 @@ model Video {
   notes       String   @default("") // migrations/007
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
 
-  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  folder VideoFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  folder     VideoFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  flashcards Flashcard[]
 
   @@unique([userId, youtubeId], map: "videos_user_id_youtube_id_unique")
   @@index([folderId], map: "videos_folder_id_idx")
@@ -154,4 +156,30 @@ model VideoFolder {
   videos Video[]
 
   @@map("video_folders")
+}
+
+// migrations/008_create_flashcards.sql
+model Flashcard {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId         String    @map("user_id") @db.Uuid
+  videoId        String    @map("video_id") @db.Uuid
+  question       String
+  answer         String
+  questionKey    String    @map("question_key")
+  videoSeconds   Int?      @map("video_seconds")
+  dueAt          DateTime  @default(now()) @map("due_at") @db.Timestamptz
+  intervalDays   Int       @default(0) @map("interval_days")
+  easeFactor     Float     @default(2.5) @map("ease_factor")
+  repetitions    Int       @default(0)
+  lapses         Int       @default(0)
+  lastReviewedAt DateTime? @map("last_reviewed_at") @db.Timestamptz
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@unique([videoId, questionKey], map: "flashcards_video_id_question_key_unique")
+  @@index([userId, dueAt], map: "flashcards_user_id_due_at_idx")
+  @@map("flashcards")
 }

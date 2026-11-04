@@ -60,6 +60,11 @@ O Vite repassa toda requisição `/api/*` do frontend para o backend (proxy em `
     - O desenho é compartilhado entre a tela e o PDF (`client/src/lib/board.ts`).
   - `GET`, `POST` (`{ url, folderId? }`), `PATCH /:id` (`{ folderId }`, para mover de pasta) e `DELETE /:id` em `/api/videos`: biblioteca de vídeos do YouTube.
   - `GET` e `PUT /api/videos/:id/notes` (`{ notes }`): bloco de notas do vídeo, até 200.000 caracteres. As notas não vêm na lista de vídeos (`omit`), só ao abrir o vídeo.
+  - `/api/flashcards`: `GET /summary`, `GET /due?folder=all|none|<id>` e `POST /:id/review` (`{ grade: again|hard|good|easy }`).
+    - Os flashcards nascem das linhas `pergunta :: resposta` das notas dos vídeos.
+    - O backend sincroniza os flashcards **dentro da mesma transação** que salva a nota (`server/src/lib/flashcards.ts`). A pergunta normalizada (`question_key`) identifica o flashcard: mudar só a resposta mantém o progresso.
+    - O agendamento é um SM-2 simplificado. Um flashcard fica disponível a partir da meia-noite do dia em que vence.
+    - A leitura das linhas `::` existe também no frontend (`client/src/lib/flashcards.ts`), só para mostrar a lista no player. As duas versões precisam seguir a mesma regra.
   - `GET`, `POST` e `PATCH /:id` (`{ name }`) e `DELETE /:id` em `/api/video-folders`: pastas de vídeos.
     - Cada vídeo fica em uma pasta, ou em nenhuma (`folder_id` nulo = "Sem pasta").
     - Excluir uma pasta não apaga os vídeos: eles voltam para "Sem pasta".

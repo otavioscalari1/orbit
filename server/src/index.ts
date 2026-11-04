@@ -3,6 +3,7 @@ import cors from 'cors'
 import express, { type ErrorRequestHandler } from 'express'
 import { prisma } from './lib/prisma.ts'
 import { classesRouter } from './routes/classes.ts'
+import { flashcardsRouter } from './routes/flashcards.ts'
 import { eventsRouter } from './routes/events.ts'
 import { notesRouter } from './routes/notes.ts'
 import { timeWindowRouter } from './routes/timeWindow.ts'
@@ -32,6 +33,7 @@ app.use('/api/events', eventsRouter)
 app.use('/api/notes', notesRouter)
 app.use('/api/videos', videosRouter)
 app.use('/api/video-folders', videoFoldersRouter)
+app.use('/api/flashcards', flashcardsRouter)
 
 // Qualquer erro não tratado nas rotas cai aqui
 const errorHandler: ErrorRequestHandler = (error, _req, res, _next) => {

@@ -4,6 +4,7 @@ import { HomePage } from './pages/HomePage'
 import { BoardListPage } from './pages/board/BoardListPage'
 import { NoteEditorPage } from './pages/board/NoteEditorPage'
 import { VideosPage } from './pages/videos/VideosPage'
+import { ReviewPage } from './pages/review/ReviewPage'
 import { CalendarPage } from './pages/calendar/CalendarPage'
 import { ClassesView } from './pages/calendar/ClassesView'
 import { MonthView } from './pages/calendar/MonthView'
@@ -21,6 +22,7 @@ function App() {
           <Route path="lousa" element={<BoardListPage />} />
           <Route path="lousa/:noteId" element={<NoteEditorPage />} />
           <Route path="videos" element={<VideosPage />} />
+          <Route path="revisao" element={<ReviewPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

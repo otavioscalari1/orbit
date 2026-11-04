@@ -1,7 +1,9 @@
 import { ExternalLink, NotebookPen, Timer } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
+import { Link } from 'react-router'
 import { Modal } from '../../components/Modal'
 import { api } from '../../lib/api'
+import { parseFlashcardLines } from '../../lib/flashcards'
 import { videoEmbedUrl, videoWatchUrl, type Video } from '../../lib/videos'
 import {
   extractTimestamps,
@@ -21,8 +23,14 @@ type NotesState =
 
 type SaveStatus = 'saved' | 'pending' | 'saving' | 'error'
 
+type VideoPlayerDialogProps = {
+  video: Pick<Video, 'id' | 'youtubeId' | 'title' | 'channelName'>
+  startSeconds?: number | null // abre o vídeo já neste momento
+  onClose: () => void
+}
+
 // Player do vídeo com o bloco de notas ao lado (ou embaixo, em telas estreitas)
-export function VideoPlayerDialog({ video, onClose }: { video: Video; onClose: () => void }) {
+export function VideoPlayerDialog({ video, startSeconds, onClose }: VideoPlayerDialogProps) {
   const [notesState, setNotesState] = useState<NotesState>({ status: 'loading' })
   const [notes, setNotes] = useState('')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
@@ -140,6 +148,7 @@ export function VideoPlayerDialog({ video, onClose }: { video: Video; onClose: (
   }
 
   const markers = useMemo(() => extractTimestamps(notes), [notes])
+  const flashcards = useMemo(() => parseFlashcardLines(notes), [notes])
 
   // Fechar: salva antes o que faltar. Se falhar, mantém aberto para não perder o texto.
   async function handleClose() {
@@ -179,7 +188,7 @@ export function VideoPlayerDialog({ video, onClose }: { video: Video; onClose: (
           <div className="aspect-video overflow-hidden rounded-lg bg-black">
             <iframe
               ref={iframeRef}
-              src={videoEmbedUrl(video.youtubeId)}
+              src={videoEmbedUrl(video.youtubeId, startSeconds)}
               title={video.title}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
@@ -269,7 +278,10 @@ export function VideoPlayerDialog({ video, onClose }: { video: Video; onClose: (
                 className="min-h-64 flex-1 resize-none rounded-lg border border-white/10 bg-ink p-3 text-sm leading-relaxed outline-none placeholder:text-white/30 focus:border-brand"
               />
               <div className="mt-1.5 flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs text-white/30">
-                <span>Ctrl+Enter marca o tempo · Ctrl+clique numa marcação pula para ela</span>
+                <span>
+                  Ctrl+Enter marca o tempo · Ctrl+clique numa marcação pula para ela · "pergunta :: resposta" vira
+                  flashcard
+                </span>
                 <span className={notes.length >= MAX_NOTES_LENGTH ? 'text-amber-400' : ''}>
                   {notes.length.toLocaleString('pt-BR')} / {MAX_NOTES_LENGTH.toLocaleString('pt-BR')} caracteres
                 </span>
@@ -295,6 +307,28 @@ export function VideoPlayerDialog({ video, onClose }: { video: Video; onClose: (
                             {marker.label || 'sem descrição'}
                           </span>
                         </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Flashcards que esta nota gera (revisados na aba Revisão) */}
+              {flashcards.length > 0 && (
+                <div className="mt-3">
+                  <h4 className="mb-1.5 flex items-center justify-between font-mono text-xs uppercase tracking-wider text-white/50">
+                    <span>
+                      <span className="text-brand">•</span> Flashcards ({flashcards.length})
+                    </span>
+                    <Link to="/revisao" className="normal-case tracking-normal text-brand hover:text-white">
+                      Revisar →
+                    </Link>
+                  </h4>
+                  <ul className="max-h-40 space-y-1 overflow-y-auto pr-1">
+                    {flashcards.map((card) => (
+                      <li key={card.question} className="rounded-md bg-white/[0.03] px-2 py-1.5 text-sm">
+                        <p className="truncate font-medium text-white/90">{card.question}</p>
+                        <p className="truncate text-xs text-white/50">{card.answer}</p>
                       </li>
                     ))}
                   </ul>
