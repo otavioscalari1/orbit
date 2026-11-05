@@ -1,9 +1,10 @@
-import { CheckCircle2, Circle, Download } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../../lib/api'
-import { emptyResume, getChecklist, normalizeResume, type ResumeContent } from '../../lib/resume'
+import { emptyResume, getMissingFields, normalizeResume, type ResumeContent, type ResumeSectionId } from '../../lib/resume'
 import { downloadResumePdf } from '../../lib/resumePdf'
 import { ResumeForm } from './ResumeForm'
+import { ResumePreview } from './ResumePreview'
 
 const SAVE_DELAY = 800 // ms sem digitar antes de salvar
 
@@ -17,15 +18,22 @@ const SAVE_LABEL: Record<SaveStatus, string> = {
   error: 'Erro ao salvar',
 }
 
-// Aba Currículo: formulário à esquerda; checklist e botão de baixar à direita
+function scrollToSection(section: ResumeSectionId) {
+  document.getElementById(`resume-${section}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+// Aba Currículo: formulário à esquerda, prévia à direita e o botão de baixar no fim do formulário
 export function ResumePage() {
   const [load, setLoad] = useState<LoadState>({ status: 'loading' })
   const [content, setContent] = useState<ResumeContent>(emptyResume)
   const [hasPhoto, setHasPhoto] = useState(false)
+  const [photoVersion, setPhotoVersion] = useState(0) // muda o endereço da imagem para mostrar a foto nova
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved')
   const [downloading, setDownloading] = useState(false)
   const [downloadError, setDownloadError] = useState<string | null>(null)
-  const [pageCount, setPageCount] = useState<number | null>(null)
+  // Quantas vezes a pessoa tentou baixar com algo faltando. O aviso só aparece depois da primeira tentativa.
+  const [blockedAttempts, setBlockedAttempts] = useState(0)
+  const missingRef = useRef<HTMLDivElement>(null)
   // Conteúdo ainda não salvo (null = nada pendente), o salvamento agendado e se há um envio em andamento
   const pending = useRef<ResumeContent | null>(null)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -85,7 +93,6 @@ export function ResumePage() {
 
   function handleChange(next: ResumeContent) {
     setContent(next)
-    setPageCount(null)
     pending.current = next
     setSaveStatus('pending')
     if (timer.current) clearTimeout(timer.current)
@@ -106,11 +113,22 @@ export function ResumePage() {
     }
   }, [])
 
+  // O aviso aparece abaixo do botão: garante que ele fique visível depois do clique
+  useEffect(() => {
+    if (blockedAttempts > 0) missingRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [blockedAttempts])
+
+  const missing = getMissingFields(content)
+
   async function handleDownload() {
-    setDownloading(true)
     setDownloadError(null)
+    if (missing.length > 0) {
+      setBlockedAttempts((current) => current + 1)
+      return
+    }
+    setDownloading(true)
     try {
-      setPageCount(await downloadResumePdf(content, hasPhoto))
+      await downloadResumePdf(content, hasPhoto)
     } catch (err) {
       setDownloadError(err instanceof Error ? err.message : 'Não foi possível gerar o PDF.')
     } finally {
@@ -118,92 +136,107 @@ export function ResumePage() {
     }
   }
 
-  const checklist = getChecklist(content)
-  const doneCount = checklist.filter((item) => item.done).length
-  const ready = doneCount === checklist.length
+  function handlePhotoChange(next: boolean) {
+    setHasPhoto(next)
+    setPhotoVersion((current) => current + 1)
+  }
+
+  const photoUrl = hasPhoto ? `/api/resume/photo?v=${photoVersion}` : null
+
+  const title = (
+    <div className="mb-6">
+      <h1 className="text-3xl font-semibold">Currículo</h1>
+      <p className="mt-1 text-sm text-white/60">
+        Preencha aos poucos: tudo fica salvo, e a prévia mostra como o currículo vai sair.
+      </p>
+    </div>
+  )
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-6">
-        <h1 className="text-3xl font-semibold">Currículo</h1>
-        <p className="mt-1 text-sm text-white/60">
-          Preencha aos poucos: tudo fica salvo. Quando o essencial estiver pronto, o download é liberado.
-        </p>
-      </div>
-
-      {load.status === 'loading' && <p className="py-16 text-center text-white/50">Carregando currículo...</p>}
+    <div>
+      {load.status === 'loading' && (
+        <>
+          {title}
+          <p className="py-16 text-center text-white/50">Carregando currículo...</p>
+        </>
+      )}
 
       {load.status === 'error' && (
-        <div className="py-16 text-center">
-          <p className="text-rose-400">{load.message}</p>
-          <button
-            type="button"
-            onClick={loadResume}
-            className="mt-4 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium transition hover:border-brand hover:text-brand"
-          >
-            Tentar de novo
-          </button>
-        </div>
+        <>
+          {title}
+          <div className="py-16 text-center">
+            <p className="text-rose-400">{load.message}</p>
+            <button
+              type="button"
+              onClick={loadResume}
+              className="mt-4 rounded-lg border border-white/15 px-4 py-2 text-sm font-medium transition hover:border-brand hover:text-brand"
+            >
+              Tentar de novo
+            </button>
+          </div>
+        </>
       )}
 
       {load.status === 'ready' && (
-        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <ResumeForm content={content} onChange={handleChange} hasPhoto={hasPhoto} onPhotoChange={setHasPhoto} />
+        // Título, campos e botão ficam à esquerda; a prévia, fixa à direita, começa no topo da página
+        // para aproveitar toda a altura da tela. A largura dela vem do próprio tamanho da folha (auto).
+        // Em telas estreitas fica tudo empilhado: formulário, prévia e, por último, o botão de baixar.
+        <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="min-w-0">
+            {title}
+            <ResumeForm content={content} onChange={handleChange} photoUrl={photoUrl} onPhotoChange={handlePhotoChange} />
+          </div>
 
-          {/* Em telas estreitas o checklist vem primeiro; nas largas, fica fixo ao lado do formulário */}
-          <aside className="order-first rounded-2xl border border-white/10 bg-ink-light p-5 lg:sticky lg:top-0 lg:order-last">
-            <div className="flex items-center justify-between gap-3">
+          {/* 7rem = altura do header + espaçamento da página: é o que sobra de tela para a prévia */}
+          <aside className="lg:sticky lg:top-0 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+            <div className="mb-2 flex items-center justify-between gap-3">
               <p className="font-mono text-xs tracking-wider text-white/70 uppercase">
-                <span className="text-brand">•</span> Checklist
+                <span className="text-brand">•</span> Prévia
               </p>
-              <span className="text-sm text-white/50">
-                {doneCount} de {checklist.length}
+              <span className="flex items-center gap-2 text-xs">
+                <span className={saveStatus === 'error' ? 'text-rose-400' : 'text-white/40'}>{SAVE_LABEL[saveStatus]}</span>
+                {saveStatus === 'error' && (
+                  <button type="button" onClick={flush} className="font-medium text-brand hover:text-white">
+                    Tentar de novo
+                  </button>
+                )}
               </span>
             </div>
-            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-              <div className="h-full bg-brand transition-all" style={{ width: `${(doneCount / checklist.length) * 100}%` }} />
-            </div>
+            <ResumePreview content={content} photoUrl={photoUrl} />
+          </aside>
 
-            <ul className="mt-4 space-y-2 text-sm">
-              {checklist.map((item) => (
-                <li key={item.label} className={'flex items-start gap-2 ' + (item.done ? 'text-white/50' : 'text-white/85')}>
-                  {item.done ? (
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-brand" />
-                  ) : (
-                    <Circle className="mt-0.5 h-4 w-4 shrink-0 text-white/30" />
-                  )}
-                  {item.label}
-                </li>
-              ))}
-            </ul>
-
+          <div ref={missingRef} className="min-w-0 lg:col-start-1">
             <button
               type="button"
-              disabled={!ready || downloading}
+              disabled={downloading}
               onClick={handleDownload}
-              className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-2.5 font-semibold text-ink transition hover:bg-brand-dark disabled:cursor-not-allowed disabled:opacity-40"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-brand px-4 py-3 font-semibold text-ink transition hover:bg-brand-dark disabled:opacity-40"
             >
               <Download className="h-4 w-4" />
               {downloading ? 'Gerando...' : 'Baixar currículo'}
             </button>
-            {!ready && <p className="mt-2 text-center text-xs text-white/40">Complete o checklist para liberar o botão.</p>}
             {downloadError && <p className="mt-2 text-center text-sm text-rose-400">{downloadError}</p>}
-            {pageCount !== null && pageCount > 1 && (
-              <p className="mt-2 text-sm text-amber-300">
-                O PDF ficou com {pageCount} páginas. Para uma vaga de início de carreira, o ideal é 1: tente deixar o texto
-                mais curto.
-              </p>
-            )}
 
-            <div className="mt-4 flex items-center justify-between gap-2 border-t border-white/10 pt-3 text-xs">
-              <span className={saveStatus === 'error' ? 'text-rose-400' : 'text-white/40'}>{SAVE_LABEL[saveStatus]}</span>
-              {saveStatus === 'error' && (
-                <button type="button" onClick={flush} className="font-medium text-brand hover:text-white">
-                  Tentar de novo
-                </button>
-              )}
-            </div>
-          </aside>
+            {/* A lista acompanha o preenchimento: cada campo some dela assim que é resolvido */}
+            {blockedAttempts > 0 && missing.length > 0 && (
+              <div role="alert" className="mt-3 rounded-xl border border-rose-500/40 bg-rose-500/10 p-4">
+                <p className="text-sm font-semibold text-rose-300">Para baixar, falta preencher:</p>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {missing.map((field) => (
+                    <li key={field.label}>
+                      <button
+                        type="button"
+                        onClick={() => scrollToSection(field.section)}
+                        className="text-left text-white/85 underline-offset-2 transition hover:text-white hover:underline"
+                      >
+                        {field.label}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

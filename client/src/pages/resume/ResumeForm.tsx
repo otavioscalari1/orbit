@@ -24,12 +24,12 @@ const EDUCATION_FUTURE_YEARS = 10
 type ResumeFormProps = {
   content: ResumeContent
   onChange: (content: ResumeContent) => void
-  hasPhoto: boolean
+  photoUrl: string | null
   onPhotoChange: (hasPhoto: boolean) => void
 }
 
 // Todas as seções do currículo. Quem guarda e salva os dados é a ResumePage.
-export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: ResumeFormProps) {
+export function ResumeForm({ content, onChange, photoUrl, onPhotoChange }: ResumeFormProps) {
   const { contact } = content
 
   function updateContact(patch: Partial<ResumeContact>) {
@@ -38,8 +38,8 @@ export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: Resum
 
   return (
     <div className="min-w-0 space-y-6">
-      <ResumeSection title="Contato">
-        <PhotoField hasPhoto={hasPhoto} onChange={onPhotoChange} />
+      <ResumeSection id="contact" title="Contato">
+        <PhotoField photoUrl={photoUrl} onChange={onPhotoChange} />
         <TextField
           label="Nome completo"
           value={contact.fullName}
@@ -89,7 +89,7 @@ export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: Resum
         </div>
       </ResumeSection>
 
-      <ResumeSection title="Objetivo" hint="A vaga ou área que você busca. Ajuste para cada candidatura.">
+      <ResumeSection id="objective" title="Objetivo" hint="A vaga ou área que você busca. Ajuste para cada candidatura.">
         <TextField
           label="Objetivo"
           value={content.objective}
@@ -99,7 +99,7 @@ export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: Resum
         />
       </ResumeSection>
 
-      <ResumeSection title="Resumo" hint="De 2 a 4 linhas sobre quem você é, o que sabe fazer e o que busca.">
+      <ResumeSection id="summary" title="Resumo" hint="De 2 a 4 linhas sobre quem você é, o que sabe fazer e o que busca.">
         <TextAreaField
           label="Resumo"
           value={content.summary}
@@ -110,7 +110,7 @@ export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: Resum
         />
       </ResumeSection>
 
-      <ResumeSection title="Formação" hint="Pelo menos 1. Se ainda estiver cursando, informe a previsão de conclusão.">
+      <ResumeSection id="education" title="Formação" hint="Pelo menos 1. Se ainda estiver cursando, informe a previsão de conclusão.">
         <EntryList
           items={content.education}
           max={MAX_ITEMS.education}
@@ -162,11 +162,11 @@ export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: Resum
         />
       </ResumeSection>
 
-      <ResumeSection title="Habilidades" hint="Pelo menos 3. Ferramentas e conhecimentos técnicos que você realmente usa.">
+      <ResumeSection id="skills" title="Habilidades" hint="Pelo menos 3. Ferramentas e conhecimentos técnicos que você realmente usa.">
         <SkillsInput skills={content.skills} onChange={(skills) => onChange({ ...content, skills })} />
       </ResumeSection>
 
-      <ResumeSection title="Idiomas" hint="Pelo menos 1. Pode incluir o português como nativo.">
+      <ResumeSection id="languages" title="Idiomas" hint="Pelo menos 1. Pode incluir o português como nativo.">
         <EntryList
           items={content.languages}
           max={MAX_ITEMS.languages}
@@ -194,6 +194,7 @@ export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: Resum
       </ResumeSection>
 
       <ResumeSection
+        id="experience"
         title="Experiência"
         hint="Estágios e empregos. Se ainda não tiver, tudo bem: basta preencher um projeto ou uma atividade."
       >
@@ -260,7 +261,7 @@ export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: Resum
         />
       </ResumeSection>
 
-      <ResumeSection title="Projetos" hint="Trabalhos da faculdade e projetos pessoais contam, e muito.">
+      <ResumeSection id="projects" title="Projetos" hint="Trabalhos da faculdade e projetos pessoais contam, e muito.">
         <EntryList
           items={content.projects}
           max={MAX_ITEMS.projects}
@@ -302,7 +303,7 @@ export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: Resum
         />
       </ResumeSection>
 
-      <ResumeSection title="Atividades" hint="Monitoria, iniciação científica, empresa júnior, voluntariado...">
+      <ResumeSection id="activities" title="Atividades" hint="Monitoria, iniciação científica, empresa júnior, voluntariado...">
         <EntryList
           items={content.activities}
           max={MAX_ITEMS.activities}
@@ -364,7 +365,7 @@ export function ResumeForm({ content, onChange, hasPhoto, onPhotoChange }: Resum
         />
       </ResumeSection>
 
-      <ResumeSection title="Cursos e certificações" hint="Opcional. Coloque os que têm relação com a vaga.">
+      <ResumeSection id="courses" title="Cursos e certificações" hint="Opcional. Coloque os que têm relação com a vaga.">
         <EntryList
           items={content.courses}
           max={MAX_ITEMS.courses}

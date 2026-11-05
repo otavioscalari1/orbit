@@ -1,7 +1,7 @@
 import { Plus, Trash2, X } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { ConfirmDialog } from '../../components/ConfirmDialog'
-import { isBlank, MAX_ITEMS, MAX_LENGTH } from '../../lib/resume'
+import { isBlank, MAX_ITEMS, MAX_LENGTH, type ResumeSectionId } from '../../lib/resume'
 
 const inputClass =
   'mt-1 w-full rounded-lg border border-white/15 bg-ink px-3 py-2 outline-none placeholder:text-white/30 focus:border-brand'
@@ -138,15 +138,16 @@ export function MonthField({ label, value, onChange, futureYears = 0 }: MonthFie
 }
 
 type SectionProps = {
+  id: ResumeSectionId // permite levar a pessoa até esta seção quando falta algo nela
   title: string
   hint?: string
   children: ReactNode
 }
 
 // Cartão de uma seção do formulário
-export function ResumeSection({ title, hint, children }: SectionProps) {
+export function ResumeSection({ id, title, hint, children }: SectionProps) {
   return (
-    <section className="rounded-2xl border border-white/10 bg-ink-light p-6">
+    <section id={`resume-${id}`} className="rounded-2xl border border-white/10 bg-ink-light p-6">
       <h2 className="text-lg font-semibold">{title}</h2>
       {hint && <p className="mt-1 text-sm text-white/50">{hint}</p>}
       <div className="mt-4 space-y-4">{children}</div>

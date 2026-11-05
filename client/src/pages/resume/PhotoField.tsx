@@ -1,4 +1,4 @@
-import { ImagePlus, Trash2, UserRound } from 'lucide-react'
+import { ImagePlus, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { api } from '../../lib/api'
 import { PhotoCropDialog } from './PhotoCropDialog'
@@ -6,15 +6,14 @@ import { PhotoCropDialog } from './PhotoCropDialog'
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20 MB antes do recorte
 
 type PhotoFieldProps = {
-  hasPhoto: boolean
+  photoUrl: string | null // null = sem foto
   onChange: (hasPhoto: boolean) => void
 }
 
 // Foto opcional do currículo: escolher, recortar, trocar e remover
-export function PhotoField({ hasPhoto, onChange }: PhotoFieldProps) {
+export function PhotoField({ photoUrl, onChange }: PhotoFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [cropUrl, setCropUrl] = useState<string | null>(null)
-  const [version, setVersion] = useState(0) // muda o endereço da imagem para mostrar a foto nova
   const [error, setError] = useState<string | null>(null)
 
   // Libera da memória a cópia temporária da imagem escolhida
@@ -46,13 +45,10 @@ export function PhotoField({ hasPhoto, onChange }: PhotoFieldProps) {
 
   return (
     <div className="flex flex-wrap items-center gap-4">
-      <div className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/15 bg-ink">
-        {hasPhoto ? (
-          <img src={`/api/resume/photo?v=${version}`} alt="Sua foto" className="h-full w-full object-cover" />
-        ) : (
-          <UserRound className="h-10 w-10 text-white/20" />
-        )}
-      </div>
+      {/* Sem foto não aparece nada aqui: nem quadrado vazio, nem ícone no lugar */}
+      {photoUrl && (
+        <img src={photoUrl} alt="Sua foto" className="h-24 w-24 shrink-0 rounded-lg border border-white/15 object-cover" />
+      )}
 
       <div className="min-w-0 flex-1">
         <p className="text-sm text-white/70">Foto (opcional)</p>
@@ -66,9 +62,9 @@ export function PhotoField({ hasPhoto, onChange }: PhotoFieldProps) {
             className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-sm font-medium transition hover:border-brand hover:text-brand"
           >
             <ImagePlus className="h-4 w-4" />
-            {hasPhoto ? 'Trocar foto' : 'Escolher foto'}
+            {photoUrl ? 'Trocar foto' : 'Escolher foto'}
           </button>
-          {hasPhoto && (
+          {photoUrl && (
             <button
               type="button"
               onClick={handleRemove}
@@ -90,7 +86,6 @@ export function PhotoField({ hasPhoto, onChange }: PhotoFieldProps) {
           onClose={() => setCropUrl(null)}
           onConfirm={async (photo) => {
             await api.uploadResumePhoto(photo)
-            setVersion((current) => current + 1)
             onChange(true)
             setCropUrl(null)
           }}

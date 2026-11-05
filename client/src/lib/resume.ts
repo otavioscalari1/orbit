@@ -74,9 +74,22 @@ export type ResumeContent = {
   courses: ResumeCourse[]
 }
 
-export type ChecklistItem = {
+export type ResumeSectionId =
+  | 'contact'
+  | 'objective'
+  | 'summary'
+  | 'education'
+  | 'skills'
+  | 'languages'
+  | 'experience'
+  | 'projects'
+  | 'activities'
+  | 'courses'
+
+// Um campo obrigatório que ainda falta, e a seção do formulário onde ele fica
+export type MissingField = {
+  section: ResumeSectionId
   label: string
-  done: boolean
 }
 
 export const LANGUAGE_LEVELS = ['Básico', 'Intermediário', 'Avançado', 'Fluente', 'Nativo']
@@ -135,7 +148,7 @@ export function normalizeResume(raw: Partial<ResumeContent>): ResumeContent {
 
 const filled = (...values: string[]) => values.every((value) => value.trim().length > 0)
 
-// Um item recém-adicionado, ainda sem nada escrito, é ignorado no checklist e no PDF
+// Um item recém-adicionado, ainda sem nada escrito, é ignorado na conferência e no PDF
 export function isBlank(entry: object) {
   return Object.entries(entry).every(([key, value]) => {
     if (key === 'id' || typeof value === 'boolean') return true
@@ -148,69 +161,104 @@ export function withoutBlank<T extends object>(entries: T[]) {
   return entries.filter((entry) => !isBlank(entry))
 }
 
-const isEducationComplete = (item: ResumeEducation) =>
-  filled(item.course, item.institution, item.startDate, item.endDate)
-const isLanguageComplete = (item: ResumeLanguage) => filled(item.name, item.level)
-const isExperienceComplete = (item: ResumeExperience) =>
-  filled(item.company, item.role, item.startDate) &&
-  (item.current || filled(item.endDate)) &&
-  item.achievements.some((line) => filled(line))
-const isProjectComplete = (item: ResumeProject) => filled(item.name, item.description)
-const isActivityComplete = (item: ResumeActivity) => filled(item.name, item.description)
-const isCourseComplete = (item: ResumeCourse) => filled(item.name, item.institution)
+// Lista os nomes dos campos obrigatórios que faltam em cada tipo de item
+const missingInEducation = (item: ResumeEducation) =>
+  missingLabels([
+    ['Curso', filled(item.course)],
+    ['Instituição', filled(item.institution)],
+    ['Início', filled(item.startDate)],
+    ['Conclusão ou previsão', filled(item.endDate)],
+  ])
+const missingInLanguage = (item: ResumeLanguage) =>
+  missingLabels([
+    ['Idioma', filled(item.name)],
+    ['Nível', filled(item.level)],
+  ])
+const missingInExperience = (item: ResumeExperience) =>
+  missingLabels([
+    ['Cargo', filled(item.role)],
+    ['Empresa', filled(item.company)],
+    ['Início', filled(item.startDate)],
+    ['Fim', item.current || filled(item.endDate)],
+    ['pelo menos 1 realização', item.achievements.some((line) => filled(line))],
+  ])
+const missingInProject = (item: ResumeProject) =>
+  missingLabels([
+    ['Nome do projeto', filled(item.name)],
+    ['Descrição', filled(item.description)],
+  ])
+const missingInActivity = (item: ResumeActivity) =>
+  missingLabels([
+    ['Atividade', filled(item.name)],
+    ['Descrição', filled(item.description)],
+  ])
+const missingInCourse = (item: ResumeCourse) =>
+  missingLabels([
+    ['Nome', filled(item.name)],
+    ['Instituição', filled(item.institution)],
+  ])
 
-// Itens pela metade travam o download, para nada do que a pessoa escreveu sumir do PDF sem aviso
-function entryProblems<T extends object>(label: string, entries: T[], isComplete: (entry: T) => boolean) {
-  const problems: ChecklistItem[] = []
+function missingLabels(fields: [label: string, ok: boolean][]) {
+  return fields.filter(([, ok]) => !ok).map(([label]) => label)
+}
+
+// Itens pela metade impedem o download, para nada do que a pessoa escreveu sumir do PDF sem aviso
+function entryProblems<T extends object>(
+  section: ResumeSectionId,
+  label: string,
+  entries: T[],
+  missingIn: (entry: T) => string[],
+) {
+  const problems: MissingField[] = []
   entries.forEach((entry, index) => {
     if (isBlank(entry)) return
     const name = entries.length > 1 ? `${label} ${index + 1}` : label
+    const missing = missingIn(entry)
     const { startDate, endDate } = entry as { startDate?: string; endDate?: string }
-    if (!isComplete(entry)) {
-      problems.push({ label: `${name}: complete ou remova`, done: false })
+    if (missing.length > 0) {
+      problems.push({ section, label: `${name}: falta ${missing.join(', ')}` })
     } else if (startDate && endDate && endDate < startDate) {
-      problems.push({ label: `${name}: o fim vem antes do início`, done: false })
+      problems.push({ section, label: `${name}: o fim vem antes do início` })
     }
   })
   return problems
 }
 
-function contactMissing({ fullName, city, state, phone, email }: ResumeContact) {
-  const missing: string[] = []
-  if (!filled(fullName)) missing.push('nome')
-  if (!filled(city, state)) missing.push('cidade e estado')
-  // DDD + número
-  if (phone.replace(/\D/g, '').length < 10) missing.push('telefone com DDD')
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) missing.push('e-mail válido')
-  return missing
-}
+// O que falta para poder baixar o currículo. Lista vazia = pode baixar.
+export function getMissingFields(content: ResumeContent): MissingField[] {
+  const { contact } = content
+  const missing: MissingField[] = []
+  const require = (section: ResumeSectionId, label: string, ok: boolean) => {
+    if (!ok) missing.push({ section, label })
+  }
 
-// O que precisa estar pronto para liberar o botão "Baixar currículo"
-export function getChecklist(content: ResumeContent): ChecklistItem[] {
-  const missing = contactMissing(content.contact)
+  require('contact', 'Nome completo', filled(contact.fullName))
+  require('contact', 'Cidade', filled(contact.city))
+  require('contact', 'Estado', filled(contact.state))
+  // DDD + número
+  require('contact', 'Telefone com DDD', contact.phone.replace(/\D/g, '').length >= 10)
+  require('contact', 'E-mail válido', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email.trim()))
+  require('objective', 'Objetivo', filled(content.objective))
+  require('summary', 'Resumo', filled(content.summary))
+  // Se já existe um item pela metade, o aviso dele (mais abaixo) diz exatamente o que falta
+  require('education', 'Formação: adicione pelo menos 1', withoutBlank(content.education).length > 0)
   const skillsLeft = MIN_SKILLS - content.skills.length
-  const hasBackground =
-    content.experience.some(isExperienceComplete) ||
-    content.projects.some(isProjectComplete) ||
-    content.activities.some(isActivityComplete)
+  require('skills', `Habilidades: ${skillsLeft === 1 ? 'falta 1' : `faltam ${skillsLeft}`}`, skillsLeft <= 0)
+  require('languages', 'Idiomas: adicione pelo menos 1', withoutBlank(content.languages).length > 0)
+  require(
+    'experience',
+    'Adicione pelo menos 1 experiência, projeto ou atividade',
+    withoutBlank(content.experience).length + withoutBlank(content.projects).length + withoutBlank(content.activities).length > 0,
+  )
 
   return [
-    { label: missing.length ? `Contato: falta ${missing.join(', ')}` : 'Contato', done: missing.length === 0 },
-    { label: 'Objetivo', done: filled(content.objective) },
-    { label: 'Resumo', done: filled(content.summary) },
-    { label: 'Formação: pelo menos 1', done: content.education.some(isEducationComplete) },
-    {
-      label: skillsLeft > 0 ? `Habilidades: ${skillsLeft === 1 ? 'falta 1' : `faltam ${skillsLeft}`}` : 'Habilidades',
-      done: skillsLeft <= 0,
-    },
-    { label: 'Idiomas: pelo menos 1', done: content.languages.some(isLanguageComplete) },
-    { label: 'Pelo menos 1 experiência, projeto ou atividade', done: hasBackground },
-    ...entryProblems('Formação', content.education, isEducationComplete),
-    ...entryProblems('Idioma', content.languages, isLanguageComplete),
-    ...entryProblems('Experiência', content.experience, isExperienceComplete),
-    ...entryProblems('Projeto', content.projects, isProjectComplete),
-    ...entryProblems('Atividade', content.activities, isActivityComplete),
-    ...entryProblems('Curso', content.courses, isCourseComplete),
+    ...missing,
+    ...entryProblems('education', 'Formação', content.education, missingInEducation),
+    ...entryProblems('languages', 'Idioma', content.languages, missingInLanguage),
+    ...entryProblems('experience', 'Experiência', content.experience, missingInExperience),
+    ...entryProblems('projects', 'Projeto', content.projects, missingInProject),
+    ...entryProblems('activities', 'Atividade', content.activities, missingInActivity),
+    ...entryProblems('courses', 'Curso', content.courses, missingInCourse),
   ]
 }
 

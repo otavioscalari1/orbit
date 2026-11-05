@@ -77,6 +77,7 @@ O Vite repassa toda requisição `/api/*` do frontend para o backend (proxy em `
     - `GET`, `PUT` (o arquivo da foto, não JSON) e `DELETE` em `/photo`: foto opcional, sempre em JPEG e recortada no navegador.
     - O backend aceita campos vazios, porque o currículo é salvo aos poucos. O que é obrigatório para baixar fica em `client/src/lib/resume.ts`.
     - O PDF é gerado no navegador (`client/src/lib/resumePdf.ts`) com o texto escrito direto no arquivo, não como imagem, para continuar selecionável.
+    - O PDF e a prévia em tempo real usam o mesmo cálculo de posições (`client/src/lib/resumeLayout.ts`). Mudanças no visual do currículo são feitas lá.
 - **Validação:** o backend sempre valida a entrada, mesmo que o frontend já valide, e responde `400` com `{ error: "mensagem em português" }`.
 
 ## Migrations do banco
