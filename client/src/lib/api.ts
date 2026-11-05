@@ -81,9 +81,11 @@ export const api = {
 
   // Flashcards (gerados das notas dos vídeos)
   getFlashcardSummary: () => request<FlashcardSummary>('/flashcards/summary'),
-  // folder: "all", "none" (sem pasta) ou o id de uma pasta de vídeos
+  // folder: "all", "manual" (criados à mão), "none" (sem pasta) ou o id de uma pasta de vídeos
   getDueFlashcards: (folder: string) =>
     request<DueFlashcard[]>(`/flashcards/due?${new URLSearchParams({ folder })}`),
+  createFlashcard: (question: string, answer: string) =>
+    request<DueFlashcard>('/flashcards', { method: 'POST', body: JSON.stringify({ question, answer }) }),
   reviewFlashcard: (id: string, grade: Grade) =>
     request<{ intervalDays: number; dueAt: string }>(`/flashcards/${id}/review`, {
       method: 'POST',

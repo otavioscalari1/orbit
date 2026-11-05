@@ -2,8 +2,8 @@ import type { Prisma } from '../generated/prisma/client.ts'
 
 // ---- 1. Ler as notas: cada linha "pergunta :: resposta" vira um flashcard ----
 
-const MAX_QUESTION_LENGTH = 1000
-const MAX_ANSWER_LENGTH = 5000
+export const MAX_QUESTION_LENGTH = 1000
+export const MAX_ANSWER_LENGTH = 5000
 // Marcação de tempo no começo da linha: [12:34] ou [1:02:03]
 const LEADING_TIMESTAMP = /^\[(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\]\s*/
 

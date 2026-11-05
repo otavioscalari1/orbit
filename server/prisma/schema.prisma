@@ -160,10 +160,12 @@ model VideoFolder {
 }
 
 // migrations/008_create_flashcards.sql
+// (o índice único das perguntas criadas à mão, da migration 010, existe só no banco:
+// o Prisma não representa índice com WHERE)
 model Flashcard {
   id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId         String    @map("user_id") @db.Uuid
-  videoId        String    @map("video_id") @db.Uuid
+  videoId        String?   @map("video_id") @db.Uuid // migrations/010: nulo = criado à mão na aba Revisão
   question       String
   answer         String
   questionKey    String    @map("question_key")
@@ -177,8 +179,8 @@ model Flashcard {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime  @default(now()) @map("updated_at") @db.Timestamptz
 
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  video Video? @relation(fields: [videoId], references: [id], onDelete: Cascade)
 
   @@unique([videoId, questionKey], map: "flashcards_video_id_question_key_unique")
   @@index([userId, dueAt], map: "flashcards_user_id_due_at_idx")

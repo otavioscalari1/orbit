@@ -2,14 +2,18 @@ import type { Video } from './videos'
 
 export type Grade = 'again' | 'hard' | 'good' | 'easy'
 
-// Flashcard que vence hoje, com o vídeo de onde veio
+// Os mesmos limites são conferidos no backend (server/src/lib/flashcards.ts)
+export const MAX_QUESTION_LENGTH = 1000
+export const MAX_ANSWER_LENGTH = 5000
+
+// Flashcard que vence hoje, com o vídeo de onde veio (null = criado à mão na aba Revisão)
 export type DueFlashcard = {
   id: string
   question: string
   answer: string
   videoSeconds: number | null // momento do vídeo em que a linha foi marcada
   isNew: boolean // nunca revisado
-  video: Pick<Video, 'id' | 'youtubeId' | 'title' | 'channelName' | 'folderId'>
+  video: Pick<Video, 'id' | 'youtubeId' | 'title' | 'channelName' | 'folderId'> | null
   previews: Record<Grade, number> // em quantos dias volta, para cada botão
 }
 
@@ -46,7 +50,7 @@ export function parseFlashcardLines(notes: string): { question: string; answer: 
     const question = line.slice(0, index).trim()
     const answer = line.slice(index + 2).trim()
     const key = question.replace(/\s+/g, ' ').toLowerCase()
-    if (!question || !answer || question.length > 1000 || answer.length > 5000 || seen.has(key)) continue
+    if (!question || !answer || question.length > MAX_QUESTION_LENGTH || answer.length > MAX_ANSWER_LENGTH || seen.has(key)) continue
     seen.add(key)
     cards.push({ question, answer })
   }

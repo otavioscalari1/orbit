@@ -1,4 +1,4 @@
-import { Layers, PartyPopper, PlayCircle, RotateCcw } from 'lucide-react'
+import { Layers, PartyPopper, PlayCircle, Plus, RotateCcw } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { api } from '../../lib/api'
@@ -6,6 +6,7 @@ import { formatInterval, GRADE_BUTTONS, type DueFlashcard, type Grade } from '..
 import type { VideoFolder } from '../../lib/videos'
 import { formatTimestamp } from '../../lib/youtubePlayer'
 import { VideoPlayerDialog } from '../videos/VideoPlayerDialog'
+import { NewFlashcardDialog } from './NewFlashcardDialog'
 
 type LoadState = { status: 'loading' } | { status: 'error'; message: string } | { status: 'ready' }
 
@@ -28,12 +29,15 @@ export function ReviewPage() {
   const [error, setError] = useState<string | null>(null)
   const [results, setResults] = useState<Record<Grade, number>>({ again: 0, hard: 0, good: 0, easy: 0 })
   const [watching, setWatching] = useState<DueFlashcard | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   function startSession(selectedFolder: string) {
     setLoad({ status: 'loading' })
     setIndex(0)
     setRevealed(false)
     setError(null)
+    setNotice(null)
     setResults({ again: 0, hard: 0, good: 0, easy: 0 })
     api
       .getDueFlashcards(selectedFolder)
@@ -60,6 +64,7 @@ export function ReviewPage() {
     if (!card || sending) return
     setSending(true)
     setError(null)
+    setNotice(null)
     try {
       await api.reviewFlashcard(card.id, grade)
       setResults((current) => ({ ...current, [grade]: current[grade] + 1 }))
@@ -72,11 +77,23 @@ export function ReviewPage() {
     }
   }
 
+  // O flashcard novo vai para o fim da fila, sem atrapalhar a revisão em andamento.
+  // Se o filtro atual mostra só vídeos, ele não entra agora: o aviso explica onde encontrar.
+  function handleCreated(created: DueFlashcard) {
+    setCreating(false)
+    if (folder === 'all' || folder === 'manual') {
+      setQueue((current) => [...current, created])
+      setNotice('Flashcard criado. Ele entra na revisão de hoje.')
+    } else {
+      setNotice('Flashcard criado. Para revisá-lo, escolha "Todas as pastas" ou "Criados por mim".')
+    }
+  }
+
   // Atalhos: Espaço mostra a resposta; 1, 2, 3 e 4 respondem
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       const target = event.target as HTMLElement
-      if (!card || watching || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
+      if (!card || watching || creating || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName)) return
       if (!revealed && (event.key === ' ' || event.key === 'Enter')) {
         event.preventDefault()
         setRevealed(true)
@@ -94,25 +111,40 @@ export function ReviewPage() {
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-3xl font-semibold">Revisão</h1>
-          <p className="mt-1 text-sm text-white/60">Flashcards que nascem das suas notas, na hora certa de revisar.</p>
+          <p className="mt-1 text-sm text-white/60">
+            Flashcards das suas notas ou criados aqui, na hora certa de revisar.
+          </p>
         </div>
-        <label className="text-sm">
-          <span className="mr-2 text-white/50">Vídeos de</span>
-          <select
-            value={folder}
-            onChange={(event) => setFolder(event.target.value)}
-            className="rounded-lg border border-white/15 bg-ink-light px-3 py-2 outline-none focus:border-brand"
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="text-sm">
+            <span className="mr-2 text-white/50">Flashcards de</span>
+            <select
+              value={folder}
+              onChange={(event) => setFolder(event.target.value)}
+              className="rounded-lg border border-white/15 bg-ink-light px-3 py-2 outline-none focus:border-brand"
+            >
+              <option value="all">Todas as pastas</option>
+              <option value="manual">Criados por mim</option>
+              <option value="none">Sem pasta</option>
+              {folders.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-ink transition hover:bg-brand-dark"
           >
-            <option value="all">Todas as pastas</option>
-            <option value="none">Sem pasta</option>
-            {folders.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-        </label>
+            <Plus className="h-4 w-4" />
+            Novo Flashcard
+          </button>
+        </div>
       </div>
+
+      {notice && <p className="mb-4 text-sm text-brand">{notice}</p>}
 
       {load.status === 'loading' && <p className="py-16 text-center text-white/50">Carregando flashcards...</p>}
 
@@ -135,7 +167,7 @@ export function ReviewPage() {
           <Layers className="mx-auto h-10 w-10 text-white/30" />
           <p className="mt-3 text-lg text-white/80">Nenhum flashcard para revisar agora.</p>
           <p className="mx-auto mt-2 max-w-md text-sm text-white/50">
-            Para criar flashcards, escreva nas notas de um vídeo uma linha no formato{' '}
+            Crie um pelo botão Novo Flashcard ou escreva nas notas de um vídeo uma linha no formato{' '}
             <code className="rounded bg-white/10 px-1.5 py-0.5 font-mono text-brand">pergunta :: resposta</code>. Eles
             aparecem aqui automaticamente.
           </p>
@@ -188,7 +220,7 @@ export function ReviewPage() {
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-ink-light p-8">
-            <p className="text-center text-2xl leading-snug font-semibold">{card.question}</p>
+            <p className="text-center text-2xl leading-snug font-semibold whitespace-pre-wrap">{card.question}</p>
 
             {revealed ? (
               <>
@@ -208,17 +240,20 @@ export function ReviewPage() {
               </div>
             )}
 
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-white/40">
-              <span className="truncate">De: {card.video.title}</span>
-              <button
-                type="button"
-                onClick={() => setWatching(card)}
-                className="inline-flex items-center gap-1 font-medium text-brand hover:text-white"
-              >
-                <PlayCircle className="h-4 w-4" />
-                Ver no vídeo{card.videoSeconds !== null ? ` (${formatTimestamp(card.videoSeconds)})` : ''}
-              </button>
-            </div>
+            {/* Flashcards criados à mão não têm vídeo de origem */}
+            {card.video && (
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-white/40">
+                <span className="truncate">De: {card.video.title}</span>
+                <button
+                  type="button"
+                  onClick={() => setWatching(card)}
+                  className="inline-flex items-center gap-1 font-medium text-brand hover:text-white"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Ver no vídeo{card.videoSeconds !== null ? ` (${formatTimestamp(card.videoSeconds)})` : ''}
+                </button>
+              </div>
+            )}
           </div>
 
           {revealed && (
@@ -244,9 +279,11 @@ export function ReviewPage() {
         </>
       )}
 
-      {watching && (
+      {watching?.video && (
         <VideoPlayerDialog video={watching.video} startSeconds={watching.videoSeconds} onClose={() => setWatching(null)} />
       )}
+
+      {creating && <NewFlashcardDialog onCreated={handleCreated} onClose={() => setCreating(false)} />}
     </div>
   )
 }
